@@ -1,7 +1,7 @@
 // Single source of truth for the site + the chat.
 // Edit this file to update copy everywhere. The serverless chat reads SYSTEM_CONTEXT
 // as its system prompt: one assistant that answers questions about Justin.
-import { MASTER_KB, RESPONSE_RULES, VOICE_PROFILE, QUICK_REFERENCE } from "./knowledge";
+import { MASTER_KB, RESPONSE_RULES, VOICE_PROFILE, QUICK_REFERENCE } from "./knowledge.js";
 
 export const PROFILE = {
   name: "Justin Gyurik",
