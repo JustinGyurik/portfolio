@@ -8,7 +8,7 @@ export default function Hero() {
   return (
     <header
       id="ask"
-      className="relative flex min-h-full flex-col justify-center overflow-hidden px-6 py-20"
+      className="relative flex min-h-full flex-col justify-center overflow-hidden px-6 py-14 sm:py-20"
     >
       {/* subtle iridescent waveform, low and masked so it never fights the text */}
       <div

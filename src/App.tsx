@@ -4,6 +4,7 @@ import Builds from "./components/Builds";
 import About from "./components/About";
 import Writing from "./components/Writing";
 import { useReveal } from "./hooks/useReveal";
+import { useIsMobile } from "./hooks/useIsMobile";
 import { DeckContext } from "./deck";
 
 // The site is a horizontal slide deck: each section is a full-screen slide and
@@ -18,6 +19,12 @@ const SLIDES = [
 
 export default function App() {
   useReveal();
+  const isMobile = useIsMobile();
+  return isMobile ? <MobileApp /> : <DeckApp />;
+}
+
+// Desktop: the horizontal slide deck. Unchanged from the original single layout.
+function DeckApp() {
   const n = SLIDES.length;
   // Track is cloned on both ends ([last, ...slides, first]) for a seamless loop;
   // `pos` indexes that cloned track and starts on the first real slide.
@@ -167,5 +174,102 @@ function DeckEdge({ dir, label, onClick }: { dir: "left" | "right"; label: strin
         {left ? <polyline points="15 18 9 12 15 6" /> : <polyline points="9 18 15 12 9 6" />}
       </svg>
     </button>
+  );
+}
+
+// Mobile: a native vertical-scroll page. The horizontal deck does not translate
+// to touch (no swipe, the 3D carousel, edge controls hidden), so phones get the
+// same sections stacked top to bottom with a scroll-spy section bar. The section
+// components are reused as-is; Builds renders its grid on mobile (see
+// BuildsCarousel), and Hero's CTA scrolls via the DeckContext `go` below.
+const MOBILE_SECTIONS = [
+  { id: "ask", label: "Ask", node: <Hero /> },
+  { id: "builds", label: "Builds", node: <Builds /> },
+  { id: "writing", label: "Writing", node: <Writing /> },
+  { id: "about", label: "About", node: <About /> },
+];
+
+function MobileApp() {
+  const scroller = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
+
+  const goTo = (i: number) => {
+    const root = scroller.current;
+    const el = document.getElementById(MOBILE_SECTIONS[i].id);
+    if (!root || !el) return;
+    const top = el.getBoundingClientRect().top - root.getBoundingClientRect().top + root.scrollTop;
+    root.scrollTo({ top, behavior: "smooth" });
+  };
+  // The Hero CTA calls go(1) ("see the work"); on mobile that just scrolls down.
+  const go = (d: number) =>
+    goTo(Math.max(0, Math.min(MOBILE_SECTIONS.length - 1, active + d)));
+
+  // Scroll-spy: the active section is the last one whose top has crossed the
+  // upper third of the viewport. A scroll listener is more reliable than
+  // IntersectionObserver ratios here, because each section is taller than the
+  // viewport (so its visible ratio never gets large).
+  useEffect(() => {
+    const root = scroller.current;
+    if (!root) return;
+    const onScroll = () => {
+      const rootTop = root.getBoundingClientRect().top;
+      const line = root.clientHeight * 0.35;
+      let idx = 0;
+      MOBILE_SECTIONS.forEach((s, i) => {
+        const el = document.getElementById(s.id);
+        if (el && el.getBoundingClientRect().top - rootTop <= line) idx = i;
+      });
+      setActive(idx);
+    };
+    onScroll();
+    root.addEventListener("scroll", onScroll, { passive: true });
+    return () => root.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return (
+    <DeckContext.Provider value={{ go }}>
+      <main
+        ref={scroller}
+        className="scroll-thin h-[100dvh] overflow-x-hidden overflow-y-auto scroll-smooth"
+      >
+        {MOBILE_SECTIONS.map((s) => (
+          <div key={s.id}>{s.node}</div>
+        ))}
+        {/* clear the fixed nav */}
+        <div aria-hidden="true" className="h-24" />
+
+        {/* scrim so content fades under the nav rather than running behind it */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-x-0 bottom-0 z-30 h-20 bg-gradient-to-t from-ink via-ink/85 to-transparent"
+        />
+
+        <nav
+          aria-label="Sections"
+          className="fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-around border-t border-line/60 bg-ink/85 pb-[env(safe-area-inset-bottom)] backdrop-blur"
+        >
+          {MOBILE_SECTIONS.map((s, i) => {
+            const on = i === active;
+            return (
+              <button
+                key={s.id}
+                onClick={() => goTo(i)}
+                aria-current={on}
+                className={`flex flex-1 flex-col items-center gap-1.5 py-2.5 font-sans text-[11px] font-medium uppercase tracking-wide transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay ${
+                  on ? "text-paper" : "text-faint"
+                }`}
+              >
+                <span
+                  className={`h-1 rounded-full transition-all duration-300 ${
+                    on ? "w-6 bg-clay" : "w-1.5 bg-line"
+                  }`}
+                />
+                {s.label}
+              </button>
+            );
+          })}
+        </nav>
+      </main>
+    </DeckContext.Provider>
   );
 }

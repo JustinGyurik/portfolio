@@ -99,16 +99,19 @@ export default function Chat() {
   return (
     <div className="w-full">
       <div className="iris-ring overflow-hidden rounded-3xl border border-line bg-panel/70 shadow-[0_40px_100px_-30px_rgba(124,92,255,0.5)] backdrop-blur">
-        {/* header: window dots + mode toggle */}
-        <div className="flex items-center gap-3 border-b border-line/80 px-5 py-3.5">
-          <span className="h-3 w-3 rounded-full bg-claydeep" />
-          <span className="h-3 w-3 rounded-full bg-magenta" />
-          <span className="h-3 w-3 rounded-full bg-cyan" />
-          <div className="ml-auto flex items-center rounded-full border border-line bg-ink/40 p-1 text-[14px] font-medium">
+        {/* header: window dots (desktop) + mode toggle. On mobile the dots are
+            dropped so the toggle spans full width as two equal halves. */}
+        <div className="flex items-center gap-3 border-b border-line/80 px-4 py-3 sm:px-5 sm:py-3.5">
+          <div className="hidden items-center gap-3 sm:flex">
+            <span className="h-3 w-3 rounded-full bg-claydeep" />
+            <span className="h-3 w-3 rounded-full bg-magenta" />
+            <span className="h-3 w-3 rounded-full bg-cyan" />
+          </div>
+          <div className="flex w-full items-center rounded-full border border-line bg-ink/40 p-1 text-[13px] font-medium sm:ml-auto sm:w-auto sm:text-[14px]">
             <button
               onClick={() => switchMode("portfolio")}
               aria-pressed={mode === "portfolio"}
-              className={`rounded-full px-3.5 py-1.5 transition ${
+              className={`flex-1 whitespace-nowrap rounded-full px-3 py-1.5 transition sm:flex-none sm:px-3.5 ${
                 mode === "portfolio" ? "bg-clay text-ink" : "text-muted hover:text-paper"
               }`}
             >
@@ -117,7 +120,7 @@ export default function Chat() {
             <button
               onClick={() => switchMode("interview")}
               aria-pressed={mode === "interview"}
-              className={`rounded-full px-3.5 py-1.5 transition ${
+              className={`flex-1 whitespace-nowrap rounded-full px-3 py-1.5 transition sm:flex-none sm:px-3.5 ${
                 mode === "interview" ? "bg-clay text-ink" : "text-muted hover:text-paper"
               }`}
             >
@@ -131,7 +134,7 @@ export default function Chat() {
           role="log"
           aria-live="polite"
           aria-label="Conversation with Justin's assistant"
-          className="scroll-thin max-h-[48vh] min-h-[300px] space-y-5 overflow-y-auto px-6 py-7 text-left"
+          className="scroll-thin max-h-[48vh] min-h-[240px] space-y-5 overflow-y-auto px-5 py-6 text-left sm:min-h-[300px] sm:px-6 sm:py-7"
         >
           {messages.map((m, i) => (
             <div key={i} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>

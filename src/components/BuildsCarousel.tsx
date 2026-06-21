@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { BUILDS, type Build } from "../content/justin";
+import { useIsMobile } from "../hooks/useIsMobile";
 import BuildMedia from "./BuildMedia";
 
 // Interactive demos are heavy (Web Audio engine, etc.), so they only load when
@@ -36,6 +37,7 @@ export default function BuildsCarousel() {
   const [zoom, setZoom] = useState<Build | null>(null);
   const [demo, setDemo] = useState<Build | null>(null); // launched interactive demo
   const [reduce, setReduce] = useState(false);
+  const isMobile = useIsMobile(); // phones get the simple grid, not the 3D wheel
   const [hoverSlot, setHoverSlot] = useState<number | null>(null); // which neighbor card is hovered
   const [dims, setDims] = useState({ cw: 300, ch: 420, r: 440, persp: 930, segW: 50 });
 
@@ -124,7 +126,9 @@ export default function BuildsCarousel() {
     return () => window.removeEventListener("keydown", onEsc);
   }, [zoom]);
 
-  if (reduce) {
+  // The 3D wheel relies on hover + precise drag, which do not translate to touch,
+  // and reduced-motion users should not get the spin. Both get a clean card grid.
+  if (reduce || isMobile) {
     return (
       <>
         <div className="mx-auto grid max-w-3xl gap-5 px-2 sm:grid-cols-2">

@@ -8,7 +8,7 @@ export const PROFILE = {
   tagline: "I build AI-native software that makes people more capable.",
   location: "Parkville, MD · open to SF / NYC",
   email: "justingyurik@gmail.com",
-  linkedin: "https://www.linkedin.com/in/justin-gyurik-pmp-a9a62367",
+  linkedin: "https://www.linkedin.com/in/justin-gyurik",
   // Drop the PDF at public/Justin-Gyurik-Resume.pdf to make this live.
   resume: "/Justin-Gyurik-Resume.pdf",
   blurb:
