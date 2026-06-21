@@ -1,0 +1,286 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+  /* The deck owns layout; only individual slides scroll vertically. */
+  overflow: hidden;
+}
+
+body {
+  @apply bg-ink text-paper font-sans antialiased;
+  background-image:
+    radial-gradient(1100px 620px at 78% -8%, rgba(155, 124, 255, 0.16), transparent 60%),
+    radial-gradient(900px 540px at 8% 18%, rgba(232, 121, 249, 0.10), transparent 58%),
+    radial-gradient(820px 600px at 50% 108%, rgba(94, 231, 224, 0.07), transparent 60%);
+  background-attachment: fixed;
+}
+
+/* film grain overlay for texture */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+#root {
+  position: relative;
+  z-index: 2;
+}
+
+::selection {
+  background: rgba(155, 124, 255, 0.32);
+  color: #fff;
+}
+
+/* iridescent gradient text */
+.iris-text {
+  background-image: linear-gradient(
+    100deg,
+    #b79bff 0%,
+    #9b7cff 22%,
+    #e879f9 52%,
+    #8b6cff 74%,
+    #5ee7e0 100%
+  );
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: irisdrift 9s ease-in-out infinite;
+}
+
+/* iridescent gradient border wrapper (oil-slick ring) */
+.iris-ring {
+  position: relative;
+}
+.iris-ring::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(120deg, #9b7cff, #e879f9, #5ee7e0, #9b7cff);
+  background-size: 220% auto;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: irisdrift 10s ease-in-out infinite;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* reveal-on-scroll */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.7s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.reveal.in {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .iris-text, .iris-ring::before { animation: none; }
+  html { scroll-behavior: auto; }
+}
+
+/* thin scrollbar in chat */
+.scroll-thin::-webkit-scrollbar { width: 8px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: #2A2440; border-radius: 99px; }
+
+.blink { animation: blink 1.1s step-end infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* ─── Glass + spatial coverflow (inspired by the FICO AI platform) ─────────── */
+
+/* Glassy translucent surface. Backdrop blur only via .glass-blur on STATIC
+   panels; moving coverflow cards skip it to stay smooth (per the FICO notes,
+   backdrop-filter + transforms + overflow:hidden stutters). */
+.glass {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02)) padding-box,
+    rgba(22, 18, 36, 0.62) padding-box;
+  border: 1px solid rgba(180, 160, 255, 0.12);
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-blur {
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+  }
+}
+
+/* Spinning iridescent conic ring for the focused card / zoom panel. */
+@property --iri-a {
+  syntax: "<angle>";
+  initial-value: 130deg;
+  inherits: false;
+}
+@keyframes iri-spin { to { --iri-a: 490deg; } }
+.iri-spin {
+  position: relative;
+}
+.iri-spin::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--iri-a) at 50% 50%,
+    #9b7cff 0%,
+    #e879f9 26%,
+    #5ee7e0 52%,
+    #b79bff 74%,
+    #9b7cff 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  animation: iri-spin 8s linear infinite;
+}
+
+/* Cylindrical wheel of CURVED cards. The track is the cylinder axis. Each card
+   is built from vertical segments, each sitting at its own small angle on the
+   rim, so the card surface bends along the wheel instead of staying a flat
+   facet. Gaps are left between cards so they read as separate cards on a wheel. */
+.cf-stage {
+  position: relative;
+  overflow: hidden;
+}
+.cf-track {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+/* A single vertical slice of a card, placed on the rim. */
+.cf-seg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  overflow: hidden;
+  backface-visibility: hidden;
+}
+/* The full card content lives inside each slice and is shifted so the slice
+   shows its own vertical strip; across slices the content reads continuously. */
+.cf-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(180, 160, 255, 0.14);
+  border-radius: 22px;
+  overflow: hidden;
+}
+/* Cylinder sheen across the whole card (sliced with it). */
+.cf-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 2;
+  background: linear-gradient(
+    100deg,
+    rgba(0, 0, 0, 0.26) 0%,
+    rgba(0, 0, 0, 0) 32%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(0, 0, 0, 0) 68%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
+  opacity: 0.4;
+}
+.cf-seg.center .cf-card {
+  border-color: rgba(155, 124, 255, 0.6);
+}
+.cf-seg.center .cf-card::after {
+  opacity: 0.1;
+}
+/* Soft focus halo behind the front card. */
+.cf-halo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 40px;
+  background: radial-gradient(closest-side, rgba(124, 92, 255, 0.45), transparent 80%);
+  filter: blur(34px);
+  pointer-events: none;
+  z-index: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cf-track { transition: none; }
+}
+
+/* Zoom-into-detail overlay. */
+@keyframes zoom-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.zoom-backdrop { animation: fade-in 220ms ease forwards; }
+.zoom-panel { animation: zoom-in 460ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cf-item, .cf-inner { transition: none; }
+  .iri-spin::before { animation: none; }
+  .zoom-backdrop, .zoom-panel { animation: none; }
+}
+
+/* ── Taffy mixer demo: the real plugin's warm, hand-drawn, candy aesthetic. ──
+   Cream paper, ink linework, a slowly spinning rainbow behind the cards, and
+   the Amatic SC hand font. Kept scoped to .taffy so it never leaks into the
+   dark portfolio shell. */
+.taffy {
+  --t-ink: #2a241d;
+  --t-paper: #fdf3e3;
+  --t-card: #fffdf7;
+  --t-well: #efe7d6;
+  font-family: 'Amatic SC', 'Comic Sans MS', cursive;
+  color: var(--t-ink);
+  background: var(--t-paper);
+}
+/* Centered square larger than the viewport diagonal so rotation never exposes a
+   corner; blur keeps it soft. Sits behind the cards. */
+.taffy-sky {
+  position: absolute; left: 50%; top: 50%;
+  width: 150vmax; height: 150vmax; margin-left: -75vmax; margin-top: -75vmax;
+  transform-origin: 50% 50%; z-index: 0; pointer-events: none;
+  background: conic-gradient(from 0deg at 50% 50%,
+    #ff4f9e, #ff8a44, #ffcf2e, #36dc82, #3aa0ff, #a957ff, #ff4f9e);
+  filter: blur(26px) saturate(1.4); opacity: 0.5;
+  animation: taffy-spin 32s linear infinite;
+}
+@keyframes taffy-spin { to { transform: rotate(360deg); } }
+.taffy-ink { font-family: 'Amatic SC', 'Comic Sans MS', cursive; }
+/* Sketchy, hand-drawn outline via asymmetric border-radius. */
+.taffy-hand { border-radius: 14px 11px 15px 10px / 11px 15px 10px 14px; }
+.taffy-hand-sm { border-radius: 9px 7px 10px 6px / 7px 10px 6px 9px; }
+@media (prefers-reduced-motion: reduce) { .taffy-sky { animation: none; } }
+/* Auto-mix hero button: a gentle "breathing" + glow to invite the click. */
+@keyframes taffy-breathe {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 3px 10px rgba(255,120,200,0.35)); }
+  50% { transform: scale(1.05); filter: drop-shadow(0 5px 20px rgba(120,180,255,0.6)); }
+}
+.taffy-breathe { animation: taffy-breathe 2.6s ease-in-out infinite; transform-origin: 50% 50%; }
+@media (prefers-reduced-motion: reduce) { .taffy-breathe { animation: none; } }

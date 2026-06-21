@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="d" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9B7CFF" />
+      <stop offset="0.55" stop-color="#E879F9" />
+      <stop offset="1" stop-color="#5EE7E0" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#0B0912" />
+  <text x="50%" y="50%" dy="2"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="30" font-weight="600"
+    text-anchor="middle" dominant-baseline="central"
+    fill="#ECE8F7">JG</text>
+  <circle cx="49" cy="44" r="3.4" fill="url(#d)" />
+</svg>

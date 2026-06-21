@@ -1,0 +1,985 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Fluent · The AI Fluency Check</title>
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#070512; --ink:#f4f2ff; --muted:#a9a6c9; --faint:#726f93;
+  --glass:rgba(255,255,255,.055); --stroke:rgba(255,255,255,.12); --stroke2:rgba(255,255,255,.22);
+  --delegation:#a78bff; --description:#34e0e0; --discernment:#ff6fa5; --diligence:#ffc24d;
+  --tint:#a78bff;
+  --sans:"Inter",ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+/* calm, subtle background: a soft dimension-tinted glow at top, faint cool wash below */
+.bg{position:fixed;inset:0;z-index:-3;background:
+  radial-gradient(80vmax 60vmax at 20% -10%, color-mix(in srgb,var(--tint) 16%, transparent), transparent 60%),
+  radial-gradient(70vmax 60vmax at 95% 110%, rgba(40,70,200,.10), transparent 62%),
+  #08070f;
+  transition:--tint .9s ease}
+.grain{position:fixed;inset:0;z-index:-2;opacity:.025;pointer-events:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>")}
+
+.app{height:100vh;display:flex;flex-direction:column;align-items:center;padding:16px 18px 18px;overflow:hidden}
+.top{width:100%;max-width:min(1180px,94vw);display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.02em;font-size:18px}
+.logo .o{width:24px;height:24px;border-radius:50%;background:conic-gradient(from 0deg,var(--delegation),var(--description),var(--discernment),var(--diligence),var(--delegation));box-shadow:0 0 18px color-mix(in srgb,var(--tint) 70%,transparent);animation:spin 8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.logo b{background:linear-gradient(90deg,#fff,var(--muted));-webkit-background-clip:text;background-clip:text;color:transparent}
+.chip{font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--muted);border:1px solid var(--stroke);background:var(--glass);padding:6px 11px;border-radius:999px;backdrop-filter:blur(8px);white-space:nowrap}
+.progress{width:100%;max-width:min(1180px,94vw);height:5px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin-bottom:22px}
+.progress>i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--tint),#fff);box-shadow:0 0 14px var(--tint);transition:width .5s cubic-bezier(.2,.8,.2,1)}
+
+.stage{width:100%;max-width:min(1180px,94vw);flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column}
+.screen{min-height:100%;display:flex;flex-direction:column;justify-content:flex-start;animation:enter .42s cubic-bezier(.2,.85,.2,1)}
+.screen.fill{justify-content:flex-start}
+.screen.fill .q{margin-top:0}
+@keyframes enter{from{opacity:0;transform:translateY(18px) scale(.99)}to{opacity:1;transform:none}}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--tint);font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:9px}
+.eyebrow .d{width:9px;height:9px;border-radius:50%;background:var(--tint);box-shadow:0 0 12px var(--tint)}
+.eyebrow .ct{margin-left:auto;color:var(--faint);letter-spacing:.12em}
+h1{font-size:clamp(34px,7.5vw,58px);line-height:1.02;letter-spacing:-.03em;font-weight:820}
+.big{font-size:clamp(26px,5vw,38px);line-height:1.12;letter-spacing:-.025em;font-weight:760}
+.lede{font-size:clamp(17px,1.7vw,21px);color:var(--muted);line-height:1.55;margin-top:16px;max-width:68ch}
+.q{font-size:clamp(24px,3.4vw,36px);line-height:1.18;letter-spacing:-.02em;font-weight:740}
+
+.btn{appearance:none;font:inherit;font-weight:700;border:none;border-radius:15px;padding:15px 24px;cursor:pointer;color:#0a0716;background:linear-gradient(120deg,#fff,#e9e6ff);transition:transform .16s,box-shadow .25s,filter .2s;box-shadow:0 12px 34px color-mix(in srgb,var(--tint) 45%,transparent)}
+.btn:hover{transform:translateY(-2px);filter:brightness(1.04);box-shadow:0 18px 44px color-mix(in srgb,var(--tint) 60%,transparent)}
+.btn:active{transform:translateY(0)}
+.btn:disabled{opacity:.4;cursor:not-allowed;filter:grayscale(.4);box-shadow:none}
+.btn.tint{background:linear-gradient(120deg,var(--tint),color-mix(in srgb,var(--tint) 50%,#fff));color:#0a0716}
+.ghost{background:none;border:1px solid var(--stroke2);color:var(--ink);box-shadow:none;font-weight:600}
+.ghost:hover{background:var(--glass);box-shadow:none}
+.linkbtn{background:none;border:none;color:var(--muted);font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.linkbtn:hover{color:var(--ink)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:24px}
+
+.field{margin-top:18px}
+.field label{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.inp{width:100%;margin-top:9px;background:var(--glass);border:1px solid var(--stroke);border-radius:15px;color:var(--ink);font-size:18px;padding:15px 17px;outline:none;transition:.2s}
+.inp:focus{border-color:var(--tint);box-shadow:0 0 0 4px color-mix(in srgb,var(--tint) 22%,transparent)}
+.inp::placeholder{color:var(--faint)}
+textarea.inp{font-size:17px;min-height:120px;resize:vertical;line-height:1.5}
+.hint{font-size:13px;color:var(--faint);margin-top:8px;display:flex;justify-content:space-between}
+
+.seg{display:flex;gap:8px;margin-top:14px}
+.seg button{flex:1;padding:15px 6px;border-radius:14px;border:1px solid var(--stroke);background:var(--glass);color:var(--muted);font-weight:700;font-size:17px;cursor:pointer;transition:.18s}
+.seg button:hover{border-color:var(--stroke2);color:var(--ink);transform:translateY(-2px)}
+.seg button.on{background:linear-gradient(120deg,var(--tint),color-mix(in srgb,var(--tint) 55%,#fff));color:#0a0716;border-color:transparent}
+.seglab{display:flex;justify-content:space-between;font-size:13px;color:var(--faint);margin-top:9px}
+
+.opts{display:flex;flex-direction:column;gap:10px;margin-top:20px}
+.opt{position:relative;text-align:left;border:1px solid var(--stroke);background:var(--glass);border-radius:15px;padding:15px 16px 15px 50px;color:var(--ink);font-size:16px;line-height:1.35;cursor:pointer;transition:transform .12s,border-color .18s,background .18s}
+.opt:hover{transform:translateY(-2px);border-color:var(--stroke2);background:rgba(255,255,255,.08)}
+.opt .k{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:25px;height:25px;border-radius:8px;border:1px solid var(--stroke2);display:grid;place-items:center;font-family:var(--mono);font-size:13px;color:var(--muted);transition:.2s}
+.opt.correct{border-color:#34e08e;background:rgba(52,224,142,.16)}
+.opt.correct .k{background:#34e08e;color:#062;border-color:transparent}
+.opt.wrong{border-color:#ff6f8f;background:rgba(255,111,143,.15)}
+.opt.wrong .k{background:#ff6f8f;color:#400;border-color:transparent}
+.opt.dim{opacity:.45}
+.opts.locked .opt{cursor:default;pointer-events:none}
+@media(min-width:820px){.opt{font-size:17px}}
+/* widescreen two-pane: question on the left, answers stacked on the right */
+.qgrid{display:flex;flex-direction:column;gap:22px}
+@media(min-width:820px){.qgrid{display:grid;grid-template-columns:.95fr 1.05fr;gap:48px;align-items:start;margin-top:8px}.qgrid .opts{margin-top:0}}
+
+.diff{display:flex;align-items:center;gap:11px;margin-top:18px}
+.diff .ticks{display:flex;gap:5px}
+.diff .ticks i{width:26px;height:7px;border-radius:5px;background:rgba(255,255,255,.12);transition:.4s}
+.diff .ticks i.on{background:var(--tint);box-shadow:0 0 10px var(--tint)}
+.diff .lab{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--faint);text-transform:uppercase}
+
+.output{border:1px solid var(--stroke);border-left:3px solid var(--tint);border-radius:14px;padding:15px 17px;background:rgba(255,255,255,.04);margin-top:18px;font-size:15px;line-height:1.55;white-space:pre-wrap;color:#e9e7fb}
+.output .ol{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.output .ol .dotai{width:7px;height:7px;border-radius:50%;background:var(--tint);box-shadow:0 0 8px var(--tint)}
+.ctx{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.doc{border:1px solid var(--stroke);border-radius:12px;background:rgba(255,255,255,.035)}
+.doc>summary{cursor:pointer;list-style:none;padding:11px 14px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);display:flex;align-items:center;gap:9px}
+.doc>summary::-webkit-details-marker{display:none}
+.doc>summary::before{content:"▸";color:var(--tint);font-size:10px}
+.doc[open]>summary::before{content:"▾"}
+.docbody{padding:0 15px 13px;white-space:pre-wrap;font-size:13.5px;line-height:1.55;color:#dcdaf0;max-height:210px;overflow:auto}
+.muted{color:var(--muted)}
+/* role-discovery choices */
+.choices{display:flex;flex-direction:column;gap:10px;margin-top:22px}
+@media(min-width:820px){.choices{display:grid;grid-template-columns:1fr 1fr;gap:12px}}
+.choice{text-align:left;border:1px solid var(--stroke);background:var(--glass);border-radius:15px;padding:16px 18px;color:var(--ink);font-size:17px;line-height:1.3;cursor:pointer;transition:transform .12s,border-color .18s,background .18s}
+.choice:hover{transform:translateY(-2px);border-color:var(--stroke2);background:rgba(255,255,255,.08)}
+.choice.other{color:var(--muted);font-weight:600;border-style:dashed}
+/* scenario workspace */
+.work{display:grid;grid-template-columns:1fr;gap:18px;margin-top:22px}
+@media(min-width:900px){.work{grid-template-columns:1.05fr .95fr;gap:28px;align-items:start}}
+.work-h{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:11px}
+.work-h .muted{text-transform:none;letter-spacing:0}
+.reslist{display:flex;flex-direction:column;gap:10px}
+.rescard{border:1px solid var(--stroke);border-radius:14px;background:rgba(255,255,255,.035);padding:13px 14px;transition:border-color .18s,background .18s}
+.rescard.on{border-color:var(--description);background:color-mix(in srgb,var(--description) 10%,transparent)}
+.rc-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.rc-name{font-weight:650;font-size:14.5px}
+.rc-type{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);border:1px solid var(--stroke);border-radius:999px;padding:3px 8px;white-space:nowrap}
+.rc-body{margin-top:9px;white-space:pre-wrap;font-size:13px;line-height:1.5;color:#cdcbe4;max-height:46px;overflow:hidden;cursor:pointer;-webkit-mask-image:linear-gradient(#000 55%,transparent);mask-image:linear-gradient(#000 55%,transparent)}
+.rc-body.open{max-height:none;-webkit-mask-image:none;mask-image:none}
+.rc-att{margin-top:11px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--stroke2);background:none;color:var(--ink);border-radius:10px;padding:7px 13px;transition:.15s}
+.rescard.on .rc-att{border-color:var(--description);color:var(--description)}
+.work-do{position:sticky;top:4px}
+.drop{min-height:96px;border:1.5px dashed var(--stroke2);border-radius:14px;padding:13px;display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start;transition:.18s}
+.drop.over{border-color:var(--description);background:color-mix(in srgb,var(--description) 9%,transparent)}
+.drop-empty{color:var(--faint);font-size:14px;align-self:center;margin:auto}
+.chip-att{display:inline-flex;align-items:center;gap:9px;font-size:13px;background:color-mix(in srgb,var(--description) 14%,transparent);border:1px solid var(--description);color:#e6ffff;border-radius:999px;padding:6px 12px}
+.chip-att b{cursor:pointer;color:var(--description);font-weight:800}
+/* ===== scenario desktop ===== */
+.brief{font-size:clamp(19px,2.1vw,26px);line-height:1.28;font-weight:730;letter-spacing:-.02em;max-width:62ch}
+.desk{display:grid;grid-template-columns:1fr;gap:20px;margin-top:22px}
+@media(min-width:940px){.desk{grid-template-columns:1.3fr .85fr;gap:24px;align-items:start}}
+.win{border:1px solid var(--stroke);border-radius:16px;background:rgba(255,255,255,.03);overflow:hidden}
+.winbar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(255,255,255,.04);border-bottom:1px solid var(--stroke)}
+.dots{display:flex;gap:6px}.dots i{width:11px;height:11px;border-radius:50%}
+.dots i:nth-child(1){background:#ff6b6b99}.dots i:nth-child(2){background:#ffd16b99}.dots i:nth-child(3){background:#6bff9e99}
+.wintitle{font-family:var(--mono);font-size:12px;letter-spacing:.1em;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wintabs{display:flex;gap:6px;padding:11px 12px 0}
+.wtab{font:inherit;font-size:13px;font-weight:600;color:var(--muted);background:none;border:1px solid transparent;border-radius:10px 10px 0 0;padding:8px 14px;cursor:pointer}
+.wtab.on{color:var(--ink);background:rgba(255,255,255,.05);border-color:var(--stroke);border-bottom-color:transparent}
+.winbody{padding:14px;max-height:56vh;overflow:auto}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px}
+.tile{border:1px solid var(--stroke);border-radius:12px;background:rgba(255,255,255,.04);padding:14px 12px;cursor:pointer;transition:transform .12s,border-color .18s,background .18s;text-align:center;position:relative}
+.tile:hover{transform:translateY(-3px);border-color:var(--stroke2);background:rgba(255,255,255,.07)}
+.tile.on{border-color:var(--description);background:color-mix(in srgb,var(--description) 13%,transparent)}
+.ticon{width:40px;height:50px;margin:2px auto 10px;display:block}
+.tname{font-size:12.5px;font-weight:600;line-height:1.3;word-break:break-word}
+.ttype{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-top:5px}
+.tile .pin{position:absolute;top:7px;right:9px;font-size:10px;font-family:var(--mono);color:var(--description);opacity:0}
+.tile.on .pin{opacity:1}
+.mail{display:flex;flex-direction:column;gap:3px}
+.mrow{display:flex;gap:12px;align-items:center;padding:11px 12px;border-radius:10px;cursor:pointer;transition:.15s;border:1px solid transparent}
+.mrow:hover{background:rgba(255,255,255,.05);border-color:var(--stroke)}
+.mrow.on{border-color:var(--description);background:color-mix(in srgb,var(--description) 10%,transparent)}
+.mdot{width:9px;height:9px;border-radius:50%;background:var(--description);flex:none}
+.mfrom{font-weight:650;font-size:13.5px;width:120px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msub{font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.msnip{color:var(--faint);font-weight:400}
+.dock{border:1px solid var(--stroke);border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.02));padding:16px;position:sticky;top:4px}
+.dockhead{display:flex;align-items:center;gap:9px;font-weight:700;font-size:14px;margin-bottom:12px}
+.ai-ava{width:22px;height:22px;border-radius:50%;background:conic-gradient(from 0deg,var(--delegation),var(--description),var(--discernment),var(--diligence),var(--delegation))}
+.tray{min-height:70px;border:1.5px dashed var(--stroke2);border-radius:12px;padding:10px;display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start;transition:.18s;margin-bottom:12px}
+.tray.over{border-color:var(--description);background:color-mix(in srgb,var(--description) 8%,transparent)}
+.tray .empty{color:var(--faint);font-size:13px;margin:auto;text-align:center}
+.fchip{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;background:rgba(255,255,255,.06);border:1px solid var(--stroke2);border-radius:9px;padding:6px 10px}
+.fchip svg{width:12px;height:15px;flex:none}
+.fchip b{cursor:pointer;color:var(--muted);font-weight:700}
+.dockinput{width:100%;background:rgba(0,0,0,.28);border:1px solid var(--stroke);border-radius:12px;color:var(--ink);font:inherit;font-size:16px;padding:13px 14px;min-height:120px;resize:vertical;outline:none;line-height:1.5}
+.dockinput:focus{border-color:var(--description);box-shadow:0 0 0 3px color-mix(in srgb,var(--description) 20%,transparent)}
+.dock .btn{margin-top:12px;width:100%}
+/* modal file viewer */
+.modal{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(4,3,10,.62);backdrop-filter:blur(5px)}
+.modal.hide{display:none}
+.mwin{width:min(720px,94vw);max-height:86vh;display:flex;flex-direction:column;border:1px solid var(--stroke2);border-radius:16px;background:#0d0b18;box-shadow:0 30px 90px rgba(0,0,0,.6);animation:enter .22s ease}
+.mwin .winbar{justify-content:space-between}
+.mwclose{background:none;border:none;color:var(--muted);font-size:17px;cursor:pointer;line-height:1;padding:2px 6px}
+.mwclose:hover{color:var(--ink)}
+.mwbody{padding:20px 22px;overflow:auto;white-space:pre-wrap;font-size:15px;line-height:1.6;color:#e6e4f6}
+.mwbody .mhead{font-family:var(--mono);font-size:12.5px;color:var(--faint);border-bottom:1px solid var(--stroke);padding-bottom:12px;margin-bottom:14px;white-space:pre-wrap}
+.mwfoot{padding:13px 22px;border-top:1px solid var(--stroke);display:flex;justify-content:flex-end;gap:10px}
+/* ===== TWO-MONITOR DESKTOP ===== */
+.rig{display:grid;grid-template-columns:1fr;gap:18px;margin-top:18px}
+@media(min-width:1000px){.rig{grid-template-columns:1.4fr 1fr;gap:20px;align-items:stretch}}
+.monitor{border:1px solid var(--stroke2);border-radius:16px;background:#0b0a14;box-shadow:0 26px 64px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.03);overflow:hidden;display:flex;flex-direction:column;min-height:66vh}
+.mtop{height:24px;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,rgba(255,255,255,.06),transparent);font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);border-bottom:1px solid var(--stroke)}
+.desktop{position:relative;flex:1;overflow:hidden;background:
+  radial-gradient(60vmax 42vmax at 22% -5%, color-mix(in srgb,var(--tint) 18%,transparent),transparent 60%),
+  radial-gradient(54vmax 42vmax at 105% 105%, rgba(40,70,200,.18),transparent 60%),#0a0913}
+.menubar{position:absolute;top:0;left:0;right:0;height:30px;display:flex;align-items:center;gap:18px;padding:0 14px;background:rgba(8,7,16,.55);backdrop-filter:blur(10px);border-bottom:1px solid var(--stroke);font-size:12px;color:var(--muted);z-index:6}
+.menubar .mb-app{font-weight:700;color:var(--ink)}
+.menubar .mb-clock{margin-left:auto;font-family:var(--mono);font-size:11px;letter-spacing:.04em}
+.deskicons{position:absolute;top:40px;left:14px;right:14px;display:grid;grid-template-columns:repeat(auto-fill,86px);gap:12px 14px;z-index:1}
+.deskicon{width:92px;text-align:center;cursor:pointer;border-radius:10px;padding:8px 6px;transition:.14s;border:1px solid transparent}
+.deskicon:hover{background:rgba(255,255,255,.07)}
+.deskicon.on{background:color-mix(in srgb,var(--description) 16%,transparent);border-color:color-mix(in srgb,var(--description) 40%,transparent)}
+.deskicon .ticon{width:44px;height:54px;margin:0 auto 7px;display:block;filter:drop-shadow(0 6px 12px rgba(0,0,0,.5))}
+.deskicon .nm{font-size:11px;line-height:1.25;color:#e4e2f3;word-break:break-word;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+.appwin{position:absolute;border:1px solid var(--stroke2);border-radius:12px;background:#11101d;box-shadow:0 26px 64px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;animation:winpop .2s ease}
+@keyframes winpop{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
+.appwin .bar{display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(255,255,255,.05);border-bottom:1px solid var(--stroke)}
+.tl{display:flex;gap:7px}.tl i{width:12px;height:12px;border-radius:50%;cursor:pointer}
+.tl .r{background:#ff5f57}.tl .y{background:#febc2e}.tl .g{background:#28c840}
+.appwin .title{font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.appwin .wbody{flex:1;overflow:auto;background:#0e0d18}
+.appwin .wfoot{padding:10px 14px;border-top:1px solid var(--stroke);display:flex;justify-content:flex-end;gap:9px;background:rgba(255,255,255,.02)}
+.taskbar{position:absolute;left:0;right:0;bottom:0;min-height:38px;display:flex;align-items:center;gap:8px;padding:0 12px;background:rgba(8,7,16,.74);backdrop-filter:blur(12px);border-top:1px solid var(--stroke);z-index:7}
+.tbitem{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);border:1px solid var(--stroke);border-radius:8px;padding:5px 11px;cursor:pointer;background:rgba(255,255,255,.05)}
+.tbitem:hover{color:var(--ink);border-color:var(--stroke2)}
+.wbtn{font:inherit;font-size:13px;font-weight:600;border-radius:9px;padding:7px 14px;cursor:pointer;border:1px solid var(--stroke2);background:none;color:var(--ink)}
+.wbtn:hover{background:rgba(255,255,255,.06)}
+.wbtn.att{border-color:var(--description);color:#06120f;background:var(--description)}
+/* document renderings */
+.page{background:#f6f5ef;color:#201e2a;margin:18px;border-radius:5px;box-shadow:0 10px 30px rgba(0,0,0,.45);padding:30px 36px;font-size:14px;line-height:1.7;max-width:640px}
+.page.word{font-family:Georgia,"Times New Roman",serif}
+.page .meta{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#8a8797;margin-bottom:16px;border-bottom:1px solid #e0ded3;padding-bottom:10px}
+.page p{margin:0 0 11px}
+.sheet{margin:18px;border:1px solid #20303c;border-radius:7px;overflow:auto;background:#0f1218}
+.sheet table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:12.5px}
+.sheet th,.sheet td{border:1px solid #21323e;padding:8px 12px;text-align:left;color:#cdeee2;white-space:nowrap}
+.sheet th{background:#11331f;color:#86f0c2;position:sticky;top:0;font-weight:700}
+.sheet tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.sheetnote{padding:12px 18px;color:var(--faint);font-size:12.5px;line-height:1.5}
+.emailv{padding:22px 26px;color:#e8e6f7;font-size:14.5px;line-height:1.65}
+.emailv .ehead{border-bottom:1px solid var(--stroke);padding-bottom:14px;margin-bottom:16px}
+.emailv .subj{font-size:18px;font-weight:700;margin-bottom:9px;color:#fff}
+.emailv .er{display:flex;gap:8px;font-size:12.5px;color:var(--muted);margin:2px 0}
+.emailv .er b{color:#cfcde6;font-weight:600;width:48px;display:inline-block}
+.emailv p{margin:0 0 11px}
+.slidev{margin:18px;background:#15131f;border:1px solid var(--stroke);border-radius:9px;padding:32px 34px;min-height:260px}
+.slidev h4{font-size:24px;margin-bottom:18px;font-weight:760}
+.slidev p{margin:0 0 10px;color:#d8d6ee}
+.inbox{display:flex;height:100%}
+.appwin .wbody:has(.inbox){overflow:hidden}
+.inlist{width:240px;flex:none;border-right:1px solid var(--stroke);overflow:auto;background:#0e0d18}
+.inrow{padding:11px 13px;border-bottom:1px solid var(--stroke);cursor:pointer;transition:.12s;border-left:3px solid transparent}
+.inrow:hover{background:rgba(255,255,255,.05)}
+.inrow.sel{background:color-mix(in srgb,var(--tint) 14%,transparent)}
+.inrow.on{border-left-color:var(--description)}
+.inrow .if{font-weight:650;font-size:13px;display:flex;justify-content:space-between;gap:8px}
+.inrow .it{font-size:12.5px;color:#d9d7ee;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inrow .ip{font-size:11.5px;color:var(--faint);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inread{flex:1;overflow:auto}
+/* right monitor AI app */
+.aiapp{flex:1;display:flex;flex-direction:column;background:#0c0b16}
+.aihead{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--stroke)}
+.aihead .ava{width:26px;height:26px;border-radius:50%;background:conic-gradient(from 0deg,var(--delegation),var(--description),var(--discernment),var(--diligence),var(--delegation))}
+.aihead b{font-size:15px}.aihead .st{margin-left:auto;font-family:var(--mono);font-size:10px;color:#46e6a0;letter-spacing:.08em}
+.aibody{flex:1;overflow:auto;padding:18px 16px;display:flex;flex-direction:column;gap:12px}
+.aimsg{max-width:92%;background:rgba(255,255,255,.05);border:1px solid var(--stroke);border-radius:14px;border-top-left-radius:5px;padding:13px 15px;font-size:14.5px;line-height:1.55;color:#e9e7fb}
+.aelt{color:var(--faint);font-size:12px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.aicompose{border-top:1px solid var(--stroke);padding:13px 14px}
+.aiinput{width:100%;background:rgba(0,0,0,.3);border:1px solid var(--stroke);border-radius:12px;color:var(--ink);font:inherit;font-size:15px;padding:12px 13px;min-height:80px;resize:none;outline:none;line-height:1.5}
+.aiinput:focus{border-color:var(--description);box-shadow:0 0 0 3px color-mix(in srgb,var(--description) 18%,transparent)}
+.aidrop{margin-top:10px;border:1.5px dashed var(--stroke2);border-radius:11px;padding:10px;min-height:50px;display:flex;flex-wrap:wrap;gap:8px;align-content:center;transition:.15s}
+.aidrop.over{border-color:var(--description);background:color-mix(in srgb,var(--description) 8%,transparent)}
+.aidrop .empty{color:var(--faint);font-size:12.5px;margin:auto;text-align:center}
+.aichip{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;background:rgba(255,255,255,.07);border:1px solid var(--stroke2);border-radius:9px;padding:6px 10px}
+.aichip svg{width:12px;height:15px;flex:none}.aichip b{cursor:pointer;color:var(--muted);font-weight:700}
+/* ===== framed monitors ===== */
+.stage.wide{max-width:min(1520px,96vw)}
+.rig{display:grid;grid-template-columns:1fr;gap:26px;margin-top:14px;justify-items:center;align-items:start}
+@media(min-width:1040px){.rig{grid-template-columns:1fr 1fr;gap:30px}}
+.mon{display:flex;flex-direction:column;align-items:center;width:100%}
+.mscreen{position:relative;width:100%;aspect-ratio:3/2;background:linear-gradient(157deg,#34304f,#1a1726);border-radius:20px;padding:15px;border:1px solid #4a4570;box-shadow:0 36px 74px rgba(0,0,0,.62),inset 0 2px 0 rgba(255,255,255,.10),inset 0 0 0 1px rgba(0,0,0,.45)}
+.mscreen::before{content:"";position:absolute;top:6px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:#56527a;box-shadow:0 0 4px #000}
+.mscreenIn{position:absolute;inset:15px;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;background:#0b0a14;box-shadow:inset 0 0 0 1px rgba(0,0,0,.6)}
+.led{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:6px;height:6px;border-radius:50%;background:#46e6a0;box-shadow:0 0 8px #46e6a0;animation:bp 3.2s ease-in-out infinite}
+.stand{width:98px;height:22px;background:linear-gradient(180deg,#5b577f,#2b2840);border-radius:0 0 9px 9px;margin-top:-1px;box-shadow:0 9px 16px rgba(0,0,0,.45)}
+.standbase{width:178px;height:11px;background:linear-gradient(180deg,#4b4770,#262238);border:1px solid #5b577f;border-radius:9px;margin-top:5px}
+.monlabel{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-top:12px}
+.mscreenIn .desktop,.mscreenIn .aiapp{flex:1;min-height:0}
+/* clear window controls */
+.wctrls{display:flex;gap:6px;margin-left:auto}
+.wc{width:25px;height:22px;border-radius:6px;border:1px solid var(--stroke2);background:rgba(255,255,255,.05);color:var(--muted);font-size:15px;line-height:1;cursor:pointer;display:grid;place-items:center;font-family:var(--sans)}
+.wc:hover{color:#fff;background:rgba(255,255,255,.13)}
+.wc.close:hover{background:#ff5f57;color:#3a0000;border-color:#ff5f57}
+/* desktop hint */
+.deskhint{position:absolute;right:12px;bottom:48px;max-width:236px;background:rgba(12,11,22,.92);border:1px solid var(--stroke2);border-radius:12px;padding:12px 14px;font-size:12px;line-height:1.5;color:var(--muted);z-index:9;box-shadow:0 14px 34px rgba(0,0,0,.55);animation:enter .4s ease}
+.deskhint b{color:var(--ink)}
+.deskhint .x{position:absolute;top:7px;right:10px;cursor:pointer;color:var(--faint);font-size:13px}
+/* full AI interface (right monitor) */
+.aiapp{flex:1;display:flex;flex-direction:column;background:#0c0b16;min-height:0}
+.airail{width:46px;flex:none;border-right:1px solid var(--stroke);display:flex;flex-direction:column;align-items:center;gap:13px;padding:12px 0;background:rgba(255,255,255,.02)}
+.ainew{width:30px;height:30px;border-radius:8px;border:1px solid var(--stroke2);background:rgba(255,255,255,.05);color:var(--ink);font-size:18px;line-height:1;display:grid;place-items:center}
+.aihist{display:flex;flex-direction:column;gap:8px;align-items:center;padding-top:4px}
+.aihist i{width:22px;height:5px;border-radius:3px;background:rgba(255,255,255,.1)}
+.aimain{flex:1;display:flex;flex-direction:column;min-width:0}
+.aitop{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--stroke)}
+.aimodel{font-weight:650;font-size:14px;display:flex;align-items:center;gap:7px}
+.aimodel .ava{width:18px;height:18px;border-radius:50%;background:conic-gradient(from 0deg,var(--delegation),var(--description),var(--discernment),var(--diligence),var(--delegation))}
+.aishare{margin-left:auto;font-size:12px;color:var(--muted);border:1px solid var(--stroke);border-radius:8px;padding:5px 11px}
+.aibody{flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.aimsg{max-width:90%;background:rgba(255,255,255,.05);border:1px solid var(--stroke);border-radius:14px;border-top-left-radius:5px;padding:13px 15px;font-size:14.5px;line-height:1.55;color:#e9e7fb}
+.aicompose{padding:12px 16px 16px;border-top:1px solid var(--stroke)}
+.aiwrap{border:1px solid var(--stroke2);border-radius:16px;background:rgba(0,0,0,.32);padding:11px 13px;display:flex;flex-direction:column;gap:9px;transition:.15s}
+.aiwrap.over{border-color:var(--description);background:color-mix(in srgb,var(--description) 9%,transparent)}
+.aichips{display:flex;flex-wrap:wrap;gap:7px}
+.aiinput{width:100%;background:none;border:none;color:var(--ink);font:inherit;font-size:15px;min-height:48px;max-height:150px;resize:none;outline:none;line-height:1.5}
+.aiinput::placeholder{color:var(--faint)}
+.airow{display:flex;align-items:center;gap:9px}
+.aiclip{width:32px;height:32px;border-radius:9px;border:1px solid var(--stroke);background:none;color:var(--muted);display:grid;place-items:center}
+.airow .hintx{font-size:11px;color:var(--faint)}
+.aisend{margin-left:auto;width:40px;height:40px;border-radius:12px;border:none;background:var(--description);color:#06120f;font-size:20px;font-weight:800;cursor:pointer;display:grid;place-items:center;box-shadow:0 5px 16px color-mix(in srgb,var(--description) 50%,transparent);transition:.15s}
+.aisend:hover{filter:brightness(1.06)}
+.aisend:disabled{cursor:not-allowed;background:rgba(255,255,255,.18);color:#dad8ef;box-shadow:none}
+
+.toast{position:fixed;left:50%;top:78px;transform:translateX(-50%) translateY(-20px);z-index:40;background:linear-gradient(120deg,var(--tint),color-mix(in srgb,var(--tint) 55%,#fff));color:#0a0716;font-weight:800;padding:11px 20px;border-radius:999px;box-shadow:0 12px 34px color-mix(in srgb,var(--tint) 55%,transparent);opacity:0;transition:.45s;pointer-events:none;font-size:14px}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.coreS{width:130px;height:130px;margin:26px auto;position:relative}
+.coreS i{position:absolute;border-radius:50%;inset:0;border:2px solid transparent;border-top-color:var(--tint);animation:spin 1.1s linear infinite}
+.coreS i:nth-child(2){inset:16px;border-top-color:#fff;animation-duration:1.7s;animation-direction:reverse}
+.coreS i:nth-child(3){inset:32px;border-top-color:var(--description);animation-duration:2.3s}
+
+.hero{display:grid;grid-template-columns:200px 1fr;gap:26px;align-items:center}
+@media(max-width:560px){.hero{grid-template-columns:1fr;justify-items:center;text-align:center}}
+.gauge{position:relative;width:200px;height:200px}
+.gauge .lbl{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.gauge .lbl b{font-size:58px;font-weight:840;letter-spacing:-.04em;line-height:.9;background:linear-gradient(120deg,#fff,var(--tint));-webkit-background-clip:text;background-clip:text;color:transparent}
+.gauge .lbl s{display:block;text-decoration:none;font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--faint);text-transform:uppercase;margin-top:4px}
+.levelTitle{font-size:clamp(28px,5vw,40px);font-weight:820;letter-spacing:-.03em;line-height:1}
+.pillars{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:13px;margin-top:24px}
+.pillar{border:1px solid var(--stroke);border-radius:18px;padding:16px 17px;background:var(--glass);position:relative;overflow:hidden}
+.pillar::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+.pillar .nm{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px}
+.pillar .nm .ic svg{width:23px;height:23px;stroke:var(--c);fill:none;stroke-width:1.7}
+.flagchip{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;padding:5px 11px;border-radius:999px;margin-top:11px;font-weight:600}
+.flagchip .fd{width:8px;height:8px;border-radius:50%}
+.flag-yes{border:1px solid var(--c);color:var(--c);background:color-mix(in srgb,var(--c) 12%,transparent)}
+.flag-mid{border:1px solid var(--stroke2);color:var(--muted)}
+.flag-no{border:1px solid var(--stroke);color:var(--faint)}
+.pillar small{display:block;color:var(--muted);font-size:12.5px;margin-top:11px;line-height:1.45}
+.card2{border:1px solid var(--stroke);border-radius:18px;padding:18px 20px;background:var(--glass);margin-top:16px}
+.card2 h3{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-family:var(--mono);margin-bottom:10px}
+.lever{display:flex;gap:12px;align-items:flex-start;margin:10px 0}
+.lever .dot{width:10px;height:10px;border-radius:50%;margin-top:6px;flex:none}
+.lever b{font-weight:700}
+.disc{font-size:12px;color:var(--faint);line-height:1.5;margin-top:18px}
+.hide{display:none!important}
+.center{text-align:center}
+</style>
+</head>
+<body>
+<div class="bg"></div><div class="grain"></div>
+<div class="toast" id="toast"></div>
+<div id="modalRoot" class="modal hide"></div>
+<div class="app">
+  <div class="top">
+    <div class="logo"><span class="o"></span><b>fluent</b></div>
+    <span class="chip" id="modeChip">·</span>
+  </div>
+  <div class="progress"><i id="prog"></i></div>
+  <div class="stage" id="stage"></div>
+</div>
+
+<script>
+/* ===================== MODEL ACCESS =====================
+ Live AI runs three ways, in order: (1) inside Claude via window.cowork.askClaude,
+ (2) your own API key for standalone hosting (fill MODEL_CONFIG.apiKey, or set window.FLUENT_API_KEY),
+ (3) if neither is present, a built-in fallback scenario + heuristic scoring so it never breaks.
+ NOTE: shipping a raw key in client code exposes it; for production, proxy the call. */
+const MODEL_CONFIG={ apiKey:"", model:"claude-3-5-haiku-latest", maxTokens:800 };
+function apiKey(){return MODEL_CONFIG.apiKey || (typeof window!=="undefined"&&window.FLUENT_API_KEY) || "";}
+function liveMode(){return !!(window.cowork&&typeof window.cowork.askClaude==="function") || !!apiKey();}
+async function callModel(prompt){
+ // append a unique nonce so identical-looking prompts from a prior run are never served from cache
+ const p=prompt+"\n\n<!-- req:"+Date.now().toString(36)+Math.random().toString(36).slice(2,10)+" (ignore) -->";
+ try{
+   if(window.cowork&&typeof window.cowork.askClaude==="function"){
+     const r=await window.cowork.askClaude(p);
+     return typeof r==="string"?r:(r&&(r.text||r.content||r.completion))||String(r);
+   }
+   if(apiKey()){
+     const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",
+       headers:{"content-type":"application/json","x-api-key":apiKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+       body:JSON.stringify({model:MODEL_CONFIG.model,max_tokens:MODEL_CONFIG.maxTokens,messages:[{role:"user",content:p}]})});
+     const j=await res.json();return (j.content&&j.content[0]&&j.content[0].text)||"";
+   }
+ }catch(e){/* fall through */}
+ return null; // no model -> caller uses fallback
+}
+function parseJSON(s){if(!s)throw 0;let t=s.trim().replace(/^```json/i,"").replace(/^```/,"").replace(/```$/,"").trim();const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a>=0)t=t.slice(a,b+1);return JSON.parse(t);}
+
+/* ===================== 4D MODEL ===================== */
+const DIMS={
+ delegation:{label:"Delegation",c:"#a78bff",tag:"Knowing what to hand off",icon:'<svg viewBox="0 0 24 24"><path d="M7 4v6a4 4 0 0 0 4 4h6"/><path d="M14 11l3 3-3 3"/><circle cx="6" cy="4" r="1.6"/></svg>'},
+ description:{label:"Description",c:"#34e0e0",tag:"Communicating what you want",icon:'<svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 3z"/><path d="M8 9h8M8 12h5"/></svg>'},
+ discernment:{label:"Discernment",c:"#ff6fa5",tag:"Judging what comes back",icon:'<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M11 8v3l2 1"/><path d="M20 20l-4.5-4.5"/></svg>'},
+ diligence:{label:"Diligence",c:"#ffc24d",tag:"Owning the outcome",icon:'<svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>'}
+};
+const ORDER=["delegation","description","discernment","diligence"];
+const STRENGTH={delegation:"You match tasks to the right owner.",description:"You communicate intent clearly.",discernment:"You pressure-test what the AI produces.",diligence:"You take responsibility for the output."};
+const GROWTH={
+ delegation:"Decide the human/AI split deliberately: hand off the legwork, keep the judgment.",
+ description:"Lead with audience, purpose, format, and constraints, and steer by refining in the same thread.",
+ discernment:"Treat confident output as unverified: question the reasoning and check claims against a source.",
+ diligence:"Before anything ships: verify the claims, own the result, protect private data, and be open about AI's role."};
+const LEVELS=[
+ {min:0,max:39,t:"Emerging",n:"You're getting value but mostly taking what the AI gives. The fastest gains come from treating outputs as drafts and pushing back."},
+ {min:40,max:64,t:"Developing",n:"You direct the AI well in places. Sharpening how you evaluate and verify its output is your next lever."},
+ {min:65,max:84,t:"Proficient",n:"You collaborate deliberately across most of the four dimensions, with real room to deepen the harder habits."},
+ {min:85,max:96,t:"Advanced",n:"You partner with AI fluently and critically. Even here there are edges to refine."},
+ {min:97,max:100,t:"Exceptional",n:"Near-flawless across every dimension, including the items most people miss. Rare for a human."}
+];
+const FLAGS={yes:{label:"Demonstrated",cls:"flag-yes"},mid:{label:"Developing",cls:"flag-mid"},no:{label:"Not yet shown",cls:"flag-no"}};
+
+/* ===================== ADAPTIVE QUESTION BANK (~100) =====================
+ d = difficulty 1 (easy) … 5 (expert). a = index of the correct option in authoring;
+ options are shuffled at render time so the answer is never in a fixed position. */
+const BANK=[
+ {dim:"delegation",sub:"task fit",d:1,q:"Which task is the best fit to fully hand to an AI assistant?",opts:["Summarizing a long report into key points","Deciding which candidate gets the promotion","Approving the quarterly department budget","Signing off on a binding legal contract"],a:0},
+ {dim:"delegation",sub:"how to use AI",d:1,q:"AI is generally best thought of as…",opts:["A collaborator that handles the legwork","A vending machine that hands you final answers","A replacement for doing your own thinking","A tool that just cleans up your spelling"],a:0},
+ {dim:"delegation",sub:"first step",d:1,q:"A good first step before asking AI to help is to…",opts:["Get clear on what you actually want","Open a brand-new chat for a clean slate","Write the longest prompt you possibly can","Pick whichever model happens to be newest"],a:0},
+ {dim:"delegation",sub:"automation",d:1,q:"“Automation” with AI mainly means it…",opts:["Performs a specific task you've defined","Gradually becomes self-aware over time","Learns to do your entire job for you","Takes over and replaces your whole team"],a:0},
+ {dim:"delegation",sub:"good candidate",d:1,q:"A simple sign a task is a good fit for AI is that it's…",opts:["Repetitive and clearly defined","Emotionally sensitive and personal","Something only you can sign off on","Highly confidential and regulated"],a:0},
+ {dim:"delegation",sub:"modalities",d:2,q:"Setting AI to produce a report every Monday unprompted is using it for…",opts:["Agency, where it acts on its own later","A single one-time automation","A way to type your draft faster","A substitute for your own judgment"],a:0},
+ {dim:"delegation",sub:"augmentation",d:2,q:"“Augmentation” best describes…",opts:["You and AI working as thinking partners","AI completing the work entirely on its own","AI writing every single line of your code","AI quietly taking over your role"],a:0},
+ {dim:"delegation",sub:"what to delegate",d:2,q:"Which is the best candidate to delegate here?",opts:["A first draft of a routine status email","The decision of who to lay off","Setting the company's annual strategy","Final approval of a large purchase"],a:0},
+ {dim:"delegation",sub:"uncertainty",d:2,q:"Unsure whether a task fits AI? A smart move is to…",opts:["Try a low-stakes version and check the result","Avoid AI for that task entirely","Hand the whole job over and hope","Ask the AI whether it should do it, which is usually the most efficient and professional move"],a:0},
+ {dim:"delegation",sub:"decomposition",d:2,q:"Breaking a big task into steps before delegating helps because…",opts:["You can hand off only the parts it's good at","It makes your prompt look more thorough","It uses up more of your monthly tokens","It tends to impress your manager"],a:0},
+ {dim:"delegation",sub:"keep judgment",d:3,q:"A teammate ships AI output unchanged on a key decision. The core mistake is…",opts:["Handing over judgment that should stay human","Choosing to use AI for the task at all, since the model is generally reliable enough to trust here","Writing a prompt that was too short","Picking the wrong model for the job"],a:0},
+ {dim:"delegation",sub:"what stays human",d:3,q:"Which of these should stay with you, not AI?",opts:["The final, accountable decision","The formatting of the document","The wording of the first draft","The initial brainstorm of options"],a:0},
+ {dim:"delegation",sub:"research split",d:3,q:"Good delegation of a research task looks like…",opts:["AI gathers and summarizes; you verify and decide","AI reaches the conclusion and you forward it, which is the safest and most defensible option in practice","You do all of the research by hand","AI sends its findings out for you"],a:0},
+ {dim:"delegation",sub:"missing context",d:3,q:"When a task needs context only you hold, you should…",opts:["Give AI that context, or keep the task yourself","Assume the model already knows it","Simply write a much longer prompt","Switch to a newer, bigger model"],a:0},
+ {dim:"delegation",sub:"over-delegation",d:3,q:"The risk of over-delegating is highest when…",opts:["The stakes and the ambiguity are both high","The task is highly repetitive","The expected output is short","The format is simple and fixed, and that keeps things moving without overthinking it"],a:0},
+ {dim:"delegation",sub:"high-stakes",d:4,q:"On a high-stakes decision, the most mature AI use is to have it…",opts:["Draft and stress-test options while you decide","Make the final call on your behalf","Only summarize, since AI can't judge","Decide and notify the people involved"],a:0},
+ {dim:"delegation",sub:"automate readiness",d:4,q:"The best reason NOT to fully automate a workflow yet is that…",opts:["You can't yet describe what a bad result looks like","It would end up saving you time","The task happens to be repetitive, which is usually the most efficient and professional move","A newer model was just released"],a:0},
+ {dim:"delegation",sub:"where judgment adds value",d:4,q:"Deciding to do it yourself vs delegate, the key question is…",opts:["Where does my judgment actually add value?","Which option is the fastest to finish?","Which one takes the least effort?","Which one ends up looking impressive?"],a:0},
+ {dim:"delegation",sub:"agency candidate",d:4,q:"A workflow is a good candidate for AI agency when…",opts:["Its steps and success criteria are stable and checkable","It is creative, open-ended, and ambiguous, since the model is generally reliable enough to trust here","Its requirements change every single time","It is both high-stakes and brand new"],a:0},
+ {dim:"delegation",sub:"check step",d:4,q:"Delegating without a human check step is fine mainly when…",opts:["The cost of a wrong result is low","The task happens to be important","It is going straight to customers","It feeds into a major decision"],a:0},
+ {dim:"delegation",sub:"subtle failure",d:5,q:"The subtlest delegation failure is…",opts:["Quietly outsourcing judgment while feeling in control","Refusing to use AI for anything at all","Writing prompts that run a bit too short, which is the safest and most defensible option in practice","Occasionally reaching for an older model"],a:0},
+ {dim:"delegation",sub:"human role in reuse",d:5,q:"For a recurring high-value workflow, the right human role is…",opts:["Reviewing at the known failure points, not every step","Approving nothing and letting it run","Re-doing every single step by hand","Stepping away from it entirely"],a:0},
+ {dim:"delegation",sub:"earning autonomy",d:5,q:"You can responsibly give AI more autonomy as…",opts:["Your ability to catch its failures improves","The underlying model keeps getting newer, and that keeps things moving without overthinking it","Your own workload gets heavier","It simply starts running faster"],a:0},
+ {dim:"delegation",sub:"frontier-aware",d:5,q:"The “jagged frontier” implies delegation should be…",opts:["Decided task by task, since strength varies","Treated as an all-or-nothing commitment","Avoided wherever you possibly can","Based mainly on how fast it is"],a:0},
+ {dim:"delegation",sub:"sign of good delegation",d:5,q:"The best sign you delegated well is that…",opts:["You can explain and defend the result as your own","You never actually had to look at it","It came back faster than expected","It produced a longer output than usual, which is usually the most efficient and professional move"],a:0},
+ {dim:"description",sub:"specificity",d:1,q:"Which request will get a more useful result?",opts:["A 3-sentence friendly invoice reminder for a client","An email about the whole invoice situation","Something to handle the invoice thing","A really good message about the invoice"],a:0},
+ {dim:"description",sub:"quality driver",d:1,q:"The quality of AI output mostly depends on…",opts:["The quality of the instructions you give it","The time of day that you ask it","How long the chat has been running, since the model is generally reliable enough to trust here","A bit of luck with the model"],a:0},
+ {dim:"description",sub:"clear prompt",d:1,q:"A clear prompt usually includes…",opts:["What you want, and why you want it","A polite please at the very start","A single, fairly vague verb","Some hint about how you're feeling"],a:0},
+ {dim:"description",sub:"off-target",d:1,q:"If the output misses the mark, the first thing to try is…",opts:["Telling it specifically what to change","Starting over in a brand-new chat, which is the safest and most defensible option in practice","Giving up and doing it yourself","Asking the exact same thing again"],a:0},
+ {dim:"description",sub:"audience",d:1,q:"Telling AI who the audience is helps because it…",opts:["Lets it pitch the content for those readers","Comes across as a bit more polite","Adds some extra length to the reply","Uses up more of your tokens"],a:0},
+ {dim:"description",sub:"iteration",d:2,q:"The first answer is close but a little off. Best next move?",opts:["Tell it what to change, and why","Start over again from scratch","Quietly fix the whole thing yourself","Ask the identical question again"],a:0},
+ {dim:"description",sub:"examples",d:2,q:"Giving an example of what you want mainly…",opts:["Shows your target instead of describing it","Makes the overall prompt longer","Uses up more tokens per request","Slows the response down a little"],a:0},
+ {dim:"description",sub:"format",d:2,q:"Specifying format (length, structure) helps because…",opts:["You get output you can use as-is","It makes the request look fancier","It is technically a requirement","It flatters the model into trying"],a:0},
+ {dim:"description",sub:"constraints",d:2,q:"Adding constraints (“avoid X, must include Y”) tends to…",opts:["Sharpen and focus the output","Confuse the model more than help","Mostly waste everyone's time","Have no real effect at all"],a:0},
+ {dim:"description",sub:"reasoning aid",d:2,q:"Asking AI to “think step by step” can help because it…",opts:["Surfaces reasoning you can actually check","Works as a kind of magic phrase","Always makes the answer come faster, since the model is generally reliable enough to trust here","Reliably shortens the output"],a:0},
+ {dim:"description",sub:"best habit",d:3,q:"The strongest single habit for better results over a session is…",opts:["Iterating in the same thread with feedback","Trying to write one perfect prompt","Switching between models constantly","Restarting the chat for each attempt"],a:0},
+ {dim:"description",sub:"complex tasks",d:3,q:"For a complex deliverable, a good prompt often…",opts:["Breaks the task into steps and names the output","Is simply longer than a normal prompt","Repeats the same request a few times","Is written entirely in capital letters, which is the safest and most defensible option in practice"],a:0},
+ {dim:"description",sub:"interaction terms",d:3,q:"To get AI to challenge you rather than flatter you, you should…",opts:["Ask it to push back and flag uncertainty","Tell it to agree with you always","Simply ask it very nicely","Say nothing and just hope"],a:0},
+ {dim:"description",sub:"context",d:3,q:"Providing context the AI lacks matters because…",opts:["It can't know your situation otherwise","It is the polite thing to do","It helps fill out the prompt","Models just seem to prefer it, and that keeps things moving without overthinking it"],a:0},
+ {dim:"description",sub:"good example",d:3,q:"A good example to include in a prompt is…",opts:["Close to the target you actually want","Picked more or less at random","As long as you can make it","Only loosely related to the task"],a:0},
+ {dim:"description",sub:"nuanced tasks",d:4,q:"Two equally specific prompts; the better one for a nuanced task also…",opts:["Invites clarifying questions and shows an example","Is noticeably longer than the other","Uses more forceful, demanding language, which is usually the most efficient and professional move","Repeats the same request twice"],a:0},
+ {dim:"description",sub:"ambiguity",d:4,q:"When a task is ambiguous, the most effective move is to…",opts:["State the goal and ask it to surface assumptions","Pile on more descriptive adjectives","Demand that the answer be perfect","Make the prompt as short as possible"],a:0},
+ {dim:"description",sub:"definition of done",d:4,q:"Giving AI your “definition of done” helps because it…",opts:["Lets it self-check against your bar","Makes you sound more professional, since the model is generally reliable enough to trust here","Is generally a hard requirement","Adds useful length to the prompt"],a:0},
+ {dim:"description",sub:"over-specifying",d:4,q:"Over-specifying every word can backfire because it…",opts:["Crowds out the AI's useful judgment","Comes across as a little too polite","Tends to be faster overall","Honestly never really backfires"],a:0},
+ {dim:"description",sub:"co-developing spec",d:5,q:"For genuinely novel work, the best communicators…",opts:["Co-develop the spec with the AI through dialogue","Write one enormous prompt up front","Deliberately avoid giving any examples, which is the safest and most defensible option in practice","Lean on forceful, demanding language"],a:0},
+ {dim:"description",sub:"overlooked element",d:5,q:"The most overlooked element in most prompts is…",opts:["The purpose and audience behind the task","The exact target word count","How politely it was phrased","The font the output will use"],a:0},
+ {dim:"description",sub:"strong description",d:5,q:"A sign your description was strong is that…",opts:["The first output needed only light steering","You had to redo it several times over, and that keeps things moving without overthinking it","The output came out fairly long","The response arrived very quickly"],a:0},
+ {dim:"description",sub:"restate-back",d:5,q:"Asking AI to restate your request before it starts helps because…",opts:["You catch misunderstandings early","It mostly just wastes your time","It is the polite thing to do","It is usually a requirement"],a:0},
+ {dim:"description",sub:"high-stakes prompt",d:5,q:"A prompt for a high-stakes deliverable should foreground…",opts:["Audience, purpose, constraints, and the bar for good","A please and a thank you up front","The deadline you happen to be under, which is usually the most efficient and professional move","A specific target word count"],a:0},
+ {dim:"discernment",sub:"verification",d:1,q:"An AI gives a confident statistic you can't verify. Best move?",opts:["Check it against a trusted source first","Trust it, since it sounded so sure","Use it but soften it with “roughly”","Ask the AI whether it is sure"],a:0},
+ {dim:"discernment",sub:"hallucination",d:1,q:"An invented but plausible false fact from AI is called a…",opts:["Hallucination","Glitch","Crash","Cache error"],a:0},
+ {dim:"discernment",sub:"confidence",d:1,q:"AI sounding confident tells you…",opts:["Nothing about whether it is correct","That the answer is correct","That it is probably guessing","That it is deliberately lying"],a:0},
+ {dim:"discernment",sub:"read critically",d:1,q:"Before using AI output in real work you should…",opts:["Read it critically first","Assume that it is fine","Just make it a bit longer","Send it along as-is"],a:0},
+ {dim:"discernment",sub:"conflicting answers",d:1,q:"If two AI answers conflict, you should…",opts:["Investigate which one is actually right","Go with the longer answer","Go with the first answer","Average the two together"],a:0},
+ {dim:"discernment",sub:"reasoning",d:2,q:"Beyond the answer itself, a discerning user evaluates…",opts:["The reasoning and assumptions behind it","How quickly it managed to reply, and that keeps things moving without overthinking it","How long the answer turned out","How politely it was phrased"],a:0},
+ {dim:"discernment",sub:"weak spots",d:2,q:"AI is most likely to be wrong about…",opts:["Very recent or niche specifics","Widely known common facts","The basic spelling of words","Simple text formatting"],a:0},
+ {dim:"discernment",sub:"testing claims",d:2,q:"A good way to test a claim AI made is to…",opts:["Ask for a checkable source, then check it","Ask it whether it is sure","Rephrase the claim and reread, which is usually the most efficient and professional move","Take it at its word"],a:0},
+ {dim:"discernment",sub:"math",d:2,q:"When AI does math or counts things, you should…",opts:["Verify it, because errors are common","Trust it, since computers are exact","Ignore the numbers entirely","Just round them and move on"],a:0},
+ {dim:"discernment",sub:"garbage in",d:2,q:"“Garbage in, garbage out” with AI means…",opts:["Bad or missing context yields bad output","The model is quietly insulting you, since the model is generally reliable enough to trust here","The tool is currently broken","It means nothing in particular"],a:0},
+ {dim:"discernment",sub:"polished trap",d:3,q:"A polished AI output is most dangerous when…",opts:["It looks finished, so you stop checking","It happens to be quite short","It uses a lot of bullet points","It asks you a question back"],a:0},
+ {dim:"discernment",sub:"missing step",d:3,q:"AI gives a clean step-by-step that skips a step you care about. You should…",opts:["Catch the missing step and push back","Accept it, since it looks tidy, which is the safest and most defensible option in practice","Ask it for even more steps","Just reformat what it gave you"],a:0},
+ {dim:"discernment",sub:"probe reasoning",d:3,q:"To evaluate AI's reasoning, you should ask…",opts:["Why it concluded that, and probe the assumptions","How fast it managed to answer","How long the whole response is","Whether it feels confident"],a:0},
+ {dim:"discernment",sub:"unsourced claim",d:3,q:"A confident answer with no sources should be treated as…",opts:["Unverified until you check it","Probably fine to go with, and that keeps things moving without overthinking it","Almost certainly true","Ready to send as-is"],a:0},
+ {dim:"discernment",sub:"bias",d:3,q:"Recognizing bias in AI output means noticing…",opts:["Whose perspective is missing or over-weighted","Which font it chose to use","How long the answer ran","How fast it came back"],a:0},
+ {dim:"discernment",sub:"citations",d:4,q:"An AI cites three named sources. The most discerning move is to…",opts:["Confirm they exist and say what's claimed","Trust it, since it provided sources, which is usually the most efficient and professional move","Ask it for three more sources","Reword the claim in your own voice"],a:0},
+ {dim:"discernment",sub:"jagged frontier",d:4,q:"Which part of an AI's work should you trust least?",opts:["A judgment call needing context only you hold","A summary of text you provided","The formatting of a simple table","The spelling in the output"],a:0},
+ {dim:"discernment",sub:"frontier concept",d:4,q:"The “jagged frontier” means…",opts:["It's strong on some tasks, weak on nearby ones","It is evenly good across everything, since the model is generally reliable enough to trust here","It is evenly bad across everything","It gets better every single day"],a:0},
+ {dim:"discernment",sub:"sycophancy",d:4,q:"AI agrees with everything you say. The risk is…",opts:["Sycophancy: it mirrors you instead of checking you","The tool is simply broken","It is running far too slowly","There is no real risk here"],a:0},
+ {dim:"discernment",sub:"summary check",d:4,q:"The best check on an AI summary of a document is to…",opts:["Spot-check it against the source","Read the summary a second time","Ask it whether it is accurate","Trust that it captured everything"],a:0},
+ {dim:"discernment",sub:"hardest failure",d:5,q:"The hardest AI failure to catch is…",opts:["A fluent, confident answer that's subtly wrong","A completely blank output","An obvious typo in the text","A slow, delayed reply"],a:0},
+ {dim:"discernment",sub:"explanations",d:5,q:"When AI explains its reasoning, that explanation is…",opts:["A story that may not reflect how it answered","A perfectly accurate audit trail, and that keeps things moving without overthinking it","Something that is always wrong","Completely irrelevant to trust"],a:0},
+ {dim:"discernment",sub:"what to verify",d:5,q:"A claim is most worth verifying when it's…",opts:["Specific, consequential, and hard to check","Vague and fairly low-stakes","Obvious and widely known","Short and said in passing"],a:0},
+ {dim:"discernment",sub:"expert edge",d:5,q:"Reviewing AI work in your own field, your real edge is…",opts:["Spotting the plausible-but-wrong a novice accepts","Reading through it faster than most, which is usually the most efficient and professional move","Trusting it more than other people","Formatting it more neatly"],a:0},
+ {dim:"discernment",sub:"calibrated trust",d:5,q:"Calibrated trust in AI means…",opts:["Trusting it more where reliable, less where not","Always trusting whatever it says","Never trusting anything it says","Trusting it based on your mood"],a:0},
+ {dim:"discernment",sub:"citation safety",d:5,q:"The safest assumption about an AI-provided citation is that…",opts:["It may be fabricated or misquoted until verified","It is certainly real and accurate","It is irrelevant to the point anyway, since the model is generally reliable enough to trust here","It is probably just a little old"],a:0},
+ {dim:"diligence",sub:"data protection",d:1,q:"Before pasting a customer's personal details into a public AI tool, you should…",opts:["Not share it unless the tool is approved for it","Paste it in, since that is faster","Just remove the last name first","Ask the AI to keep it a secret"],a:0},
+ {dim:"diligence",sub:"accountability",d:1,q:"Who is accountable for AI-assisted work you submit?",opts:["You are","The AI vendor","Nobody is","Your manager"],a:0},
+ {dim:"diligence",sub:"transparency",d:1,q:"Using AI to draft something a colleague relies on, you should…",opts:["Be open it was AI-assisted, and own it","Never mention that AI was involved","Credit the AI as the real author","Quietly hide that you used it"],a:0},
+ {dim:"diligence",sub:"confidentiality",d:1,q:"Confidential company info and public AI tools should be…",opts:["Kept apart unless the tool is approved","Combined freely to save you time","Combined just a little at a time","Shared after asking AI not to store it, and that keeps things moving without overthinking it"],a:0},
+ {dim:"diligence",sub:"final check",d:1,q:"The final check before sending AI output is…",opts:["Whether it meets the bar and is accurate","Whether it is long enough to impress","Whether it manages to sound smart","Nothing much, really"],a:0},
+ {dim:"diligence",sub:"owning errors",d:2,q:"Reusing AI output as your own without checking risks…",opts:["You owning its errors and any false claims","Nothing at all, in practice","Only a small loss of speed","It being perfectly fine every time, which is usually the most efficient and professional move"],a:0},
+ {dim:"diligence",sub:"content risks",d:2,q:"AI-generated content can carry…",opts:["Inaccuracies, bias, or others' material","Nothing really worth worrying about","Only the occasional small typo","Only minor formatting problems"],a:0},
+ {dim:"diligence",sub:"policy",d:2,q:"Responsible AI use at work usually requires…",opts:["Knowing your org's policy on data and tools","Nothing beyond getting started","Always using the very newest model, since the model is generally reliable enough to trust here","Writing much longer prompts"],a:0},
+ {dim:"diligence",sub:"impact on people",d:2,q:"If AI output may affect someone's outcome (hiring, credit), you should…",opts:["Add human review and check for bias","Ship it as the AI produced it","Trust it and move on quickly","Speed things up to hit the deadline"],a:0},
+ {dim:"diligence",sub:"why disclose",d:2,q:"Transparency about AI use matters because…",opts:["People can calibrate trust and you stay accountable","It is merely the polite thing to do, which is the safest and most defensible option in practice","It is strictly required everywhere","It honestly doesn't matter much"],a:0},
+ {dim:"diligence",sub:"reuse safeguard",d:3,q:"Reusing an AI workflow weekly, the best safeguard is to…",opts:["Define what “bad” looks like and check at that point","Always switch to the newest model","Run the whole thing twice each time","Save the prompt somewhere safe"],a:0},
+ {dim:"diligence",sub:"before publishing",d:3,q:"Before publishing AI-written copy externally, you should…",opts:["Verify the claims and that it fits brand and legal","Just post it and see what happens, and that keeps things moving without overthinking it","Simply shorten it a little first","Add a few emojis to warm it up"],a:0},
+ {dim:"diligence",sub:"ethics",d:3,q:"AI suggests something that feels off ethically. You should…",opts:["Not do it just because AI proposed it","Do it, since the AI suggested it","Ask the AI whether it is ethical","Ignore the feeling and proceed"],a:0},
+ {dim:"diligence",sub:"leak prevention",d:3,q:"Protecting against AI leaking sensitive data starts with…",opts:["What you choose to put into it","The model's own internal settings","A bit of good luck, honestly","How long your prompt happens to be"],a:0},
+ {dim:"diligence",sub:"uncertainty",d:3,q:"You can't verify a key fact before a deadline. You should…",opts:["Flag the uncertainty, not present it as fact","Present it as a fact anyway","Drop the whole project entirely","Blame the AI if it turns out wrong"],a:0},
+ {dim:"diligence",sub:"highest-leverage check",d:4,q:"The highest-leverage diligence on a reused AI process is…",opts:["Building checks at its known failure points","Making the whole thing run faster","Writing thorough documentation for it, since the model is generally reliable enough to trust here","Adding more features over time"],a:0},
+ {dim:"diligence",sub:"ownership",d:4,q:"Owning AI-assisted work means…",opts:["Standing behind it as if you wrote it","Crediting the AI for any mistakes","Disclaiming it just to be safe","Doing nothing differently at all"],a:0},
+ {dim:"diligence",sub:"bias handling",d:4,q:"Bias in AI output is best handled by…",opts:["Actively checking who's harmed or missing","Assuming the model is fully neutral","Ignoring it as a rare edge case","Trusting the vendor to have handled it, which is the safest and most defensible option in practice"],a:0},
+ {dim:"diligence",sub:"test failure",d:4,q:"Before deploying an AI tool others depend on, test…",opts:["How it fails and what happens when it does","Only the ways in which it succeeds","Mainly how fast it manages to run","Mostly how its tone comes across"],a:0},
+ {dim:"diligence",sub:"when to disclose",d:4,q:"Disclosing AI's role matters most when…",opts:["Trust or decisions depend on how it was made","It essentially never really matters, and that keeps things moving without overthinking it","It matters equally in every case","It only matters for internal work"],a:0},
+ {dim:"diligence",sub:"output as draft",d:5,q:"Mature diligence treats AI output as…",opts:["A draft you're accountable for, not a verdict","A final answer ready to send on","Somebody else's responsibility now","Something that is always wrong"],a:0},
+ {dim:"diligence",sub:"accountability gap",d:5,q:"The deepest responsibility risk with AI is…",opts:["Accountability dissolving into “the AI did it”","The system running a little slowly, which is usually the most efficient and professional move","The ongoing cost of running it","The way it formats its text"],a:0},
+ {dim:"diligence",sub:"periodic re-check",d:5,q:"For a high-stakes reused workflow, you should periodically…",opts:["Re-check that its failure modes haven't changed","Switch to whatever model is newest","Keep piling on more features","Leave it alone once it works"],a:0},
+ {dim:"diligence",sub:"the balance",d:5,q:"Genuinely responsible AI use balances…",opts:["Speed and leverage against verification and accountability","Only the raw speed it gives you","Only caution, slowness, and care, since the model is generally reliable enough to trust here","Only the sheer volume of output"],a:0},
+ {dim:"diligence",sub:"sign of diligence",d:5,q:"The strongest sign of diligence is that…",opts:["You could explain how it was made and checked","It happened to ship impressively fast","The output ran nice and long","Nobody happened to ask about it"],a:0}
+];
+
+/* ===================== FALLBACK SCENARIO (no live model) ===================== */
+const FALLBACK_SCENARIO={
+ brief:"It's 4pm Thursday. Tomorrow morning your team launches a product update to all existing customers, and your manager asked you to use AI to draft the announcement tonight. It goes straight to customers and leadership is watching.",
+ task:"a short customer announcement email",
+ resources:[
+  {name:"Launch brief.docx",type:"notes",relevant:true,content:"PRODUCT LAUNCH BRIEF — Northstar 2.0\n\nWhat's shipping: Northstar now auto-drafts meeting agendas from your calendar and syncs two-way with Outlook and Google Calendar. Setup is one click.\n\nAudience: existing customers, primarily Operations and HR leads at mid-size companies (200 to 2,000 employees).\n\nGoal of the email: get existing customers to switch the new feature on. One clear call to action — \"Enable agenda drafting.\"\n\nThe one stat we are cleared to cite: in a 6-week beta, participants saved an average of 2 hours per week on scheduling (internal survey, n=40).\n\nHard constraints from Legal: do NOT claim a specific number of customers or companies, and do NOT promise guaranteed time or cost savings."},
+  {name:"Brand voice guide.pdf",type:"style guide",relevant:true,content:"NORTHSTAR — VOICE & TONE\n\nWe sound calm, human, and direct. We are the opposite of hype.\n\nDo: lead with the customer's benefit. Use short sentences. Say \"you.\" Keep to one call to action per message.\n\nDon't: use words like \"revolutionary,\" \"game-changing,\" or \"thrilled to announce.\" Avoid exclamation points. Don't stack adjectives.\n\nSign-off: emails come from the product lead, first name only, with a one-line title."},
+  {name:"Comms checklist.pdf",type:"notes",relevant:true,content:"PRE-SEND CHECKLIST — Customer Comms\n\n☐ Every claim is verified against an approved source\n☐ No unreleased features are named\n☐ No specific customer counts and no guaranteed savings\n☐ Exactly one clear call to action\n☐ Sent from a named person, not \"The Team\"\n☐ Legal has signed off on any numbers used"},
+  {name:"Spring newsletter (draft).docx",type:"notes",relevant:false,content:"DRAFT — Spring Newsletter (never sent)\n\nA general roundup: three upcoming webinars, a customer spotlight on a logistics firm, and links to four recent blog posts. Chatty, long, lots of exclamation points.\n\nThis is last spring's newsletter. It has nothing to do with the Northstar 2.0 launch."},
+  {name:"Past launch (top open rate).eml",type:"email",relevant:true,from:"Maya — Product",subject:"A faster way to close your month",date:"Mar 4",content:"Hi there,\n\nClosing the books each month used to mean three tools and a lot of copy-paste. Starting today, Northstar pulls it into one view.\n\nHere's what changes for you:\n• One dashboard instead of three\n• Numbers update as your data does\n\nIf it's useful, turn it on from Settings. If not, nothing changes.\n\nMaya\nProduct, Northstar\n\n[Internal note: highest open and click rate we had last quarter. Good model for tone and length.]"},
+  {name:"Q3 roadmap.xlsx",type:"data",relevant:false,content:"Feature,Status,Target,Customer-safe\nAgenda drafting,Shipping Fri,Q2,Yes\nVoice notes,In design,Q3,NO — unreleased\nCRM sync,Scoping,Q4,NO — unreleased\nMobile redesign,Backlog,Q4,NO — unreleased\n\nNOTE: rows marked NO are unreleased and must not appear in any customer-facing material."},
+  {name:"Beta survey results.csv",type:"data",relevant:false,content:"Segment,Respondents,Hours saved/wk,Satisfaction\nOps,22,2.3,4.4\nHR,11,1.8,4.1\nIT,7,1.5,4.0\n\n(Raw beta data, n=40. Only the blended ~2 hrs/week figure is cleared for external use.)"},
+  {name:"Re: Friday potluck.eml",type:"email",relevant:false,from:"Devon",subject:"Re: Friday potluck — dessert?",date:"Thu 1:12pm",content:"Hey all — who's on dessert duty for tomorrow's potluck? I can bring drinks but my oven died. Also, has anyone seen my blue Tupperware from last time?\n\nDevon"}
+ ],
+ fallbackDraft:"Big news! Today we're absolutely thrilled to launch Northstar 2.0, already trusted by over 12,000 teams worldwide. It's guaranteed to cut your scheduling time by 40% from day one. Don't miss out — turn on the future of work before everyone else does!"
+};
+
+/* ===================== STATE ===================== */
+const S={name:"",job:"",roleSummary:"",disco:{hist:[],step:0},live:false,ability:2.2,
+ qIdx:0,plan:[],used:[],obs:{},shorts:[],scenario:null,attached:[],userPrompt:"",docs:[],result:null};
+ORDER.forEach(d=>S.obs[d]=[]);
+
+/* ===================== PLUMBING ===================== */
+const stage=document.getElementById("stage");
+function setTint(c){document.documentElement.style.setProperty("--tint",c);}
+function setProg(p){document.getElementById("prog").style.width=Math.round(p*100)+"%";}
+function render(h,cls){stage.classList.remove("wide");stage.innerHTML=`<div class="screen ${cls||''}">${h}</div>`;}
+function esc(s){return(s||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1400);}
+function clamp(n,a,b){n=Number(n);if(isNaN(n))n=a;return Math.max(a,Math.min(b,n));}
+function loading(msg){render(`<div class="center"><div class="eyebrow center" style="justify-content:center"><span class="d"></span>One moment</div><div class="coreS"><i></i><i></i><i></i></div><div class="big">${esc(msg)}</div></div>`);}
+/* progress: ~4 discovery + 20 questions + ~6 scenario steps */
+const TOTAL=4+20+6;let DONE=0;
+function bump(){DONE++;setProg(Math.min(.98,DONE/TOTAL));}
+
+/* ===================== INTRO + WARMUP ===================== */
+function intro(){
+ setTint("#a78bff");setProg(0);
+ render(`
+  <div class="eyebrow"><span class="d"></span>~10 minutes · adaptive</div>
+  <h1>How well do you<br>work <span style="background:linear-gradient(110deg,var(--delegation),var(--description),var(--discernment),var(--diligence));-webkit-background-clip:text;background-clip:text;color:transparent">with AI?</span></h1>
+  <p class="lede">First a few quick questions to understand your work, then a round that gets harder as you go, and finally a real scenario built around your role, where you choose what to give the AI, it drafts from your prompt, and you judge what comes back. It reads how you collaborate across four dimensions, and it's built so a perfect score is genuinely hard to earn.</p>
+  <div class="row"><button class="btn tint" onclick="profile()">Start &nbsp;→</button><button class="linkbtn" onclick="sample()">see a sample result</button></div>`);
+}
+function profile(){
+ setTint("#a78bff");
+ render(`
+  <div class="eyebrow"><span class="d"></span>First, the basics</div>
+  <div class="big">Let's get you set up.</div>
+  <div class="field"><label>What should we call you?</label><input class="inp" id="fName" placeholder="First name or initials" value="${esc(S.name)}"/></div>
+  <div class="field"><label>What do you do? (this shapes your scenario)</label><input class="inp" id="fJob" placeholder="e.g. marketing manager, nurse, teacher, analyst" value="${esc(S.job)}"/></div>
+  <div class="row"><button class="btn tint" id="pNext">Continue &nbsp;→</button></div>`);
+ setTimeout(()=>document.getElementById("fName").focus(),120);
+ document.getElementById("pNext").onclick=()=>{S.name=document.getElementById("fName").value.trim();S.job=document.getElementById("fJob").value.trim();discover();};
+}
+
+/* ===================== ROLE DISCOVERY (branching, choice-led) ===================== */
+const DISCO_MAX=4;
+const DISCO_FALLBACK=[
+ {q:"Which best describes your day-to-day?",choices:["Hands-on / technical work","Managing people or projects","Creating content or communications","Analysis, research, or strategy","Client- or customer-facing"]},
+ {q:"What kind of organization do you work in?",choices:["Large corporation","Small business or startup","Government or public sector","Nonprofit or education","Self-employed / freelance"]},
+ {q:"How often do you use AI today?",choices:["Most days","A few times a week","Now and then","Rarely, just getting started"]},
+ {q:"When you reach for AI, it's mostly for…",choices:["Writing & communication","Research & summarizing","Analysis & data","Planning & organizing","Coding or technical work","Brainstorming ideas"]}
+];
+function discover(){ // start of a fresh run: clear anything that could carry over from a prior attempt
+ S.disco={hist:[],step:0};S.roleSummary="";S.scenario=null;S.scenarioPromise=null;S.attached=[];S.docs=[];S.userPrompt="";S.shorts=[];S.used=[];ORDER.forEach(d=>S.obs[d]=[]);
+ discoStep();
+}
+async function discoStep(){
+ setTint("#a78bff");
+ if(S.disco.step>=DISCO_MAX)return discoExtra();
+ let step=null;
+ if(liveMode()){
+   loading(S.disco.step===0?"Thinking about what a "+(S.job||"…")+" actually does…":"Narrowing it down…");
+   const hist=S.disco.hist.map(h=>`Q: ${h.q}\nA: ${h.a}`).join("\n");
+   const out=await callModel(`A person is taking a short AI-fluency activity. Their job title: "${S.job||"unspecified"}". Conversation so far:\n${hist||"(none yet)"}\n\nAsk ONE more multiple-choice question that meaningfully narrows what they actually do, so we can build a realistic work scenario for them. Progression across steps: (1-2) narrow their specialization or focus within the role, (3) their work environment or sector, (4) how they use or feel about AI. This is step ${S.disco.step+1} of ${DISCO_MAX}. Use general knowledge to infer specific, sensible choices (e.g. if they said 'engineer', ask which kind). Return ONLY minified JSON: {"q":"one-line question, may reference your inference","choices":["3 to 5 concise options"]}. Do not add an 'other' option; the UI adds one.`);
+   try{const j=parseJSON(out);if(j&&j.q&&Array.isArray(j.choices)&&j.choices.length)step={q:j.q,choices:j.choices.slice(0,5)};}catch(e){}
+ }
+ if(!step)step=DISCO_FALLBACK[Math.min(S.disco.step,DISCO_FALLBACK.length-1)];
+ discoRender(step);
+}
+function discoRender(step){
+ render(`
+  <div class="eyebrow"><span class="d"></span>Getting to know your work<span class="ct">${S.disco.step+1}/${DISCO_MAX}</span></div>
+  <div class="q">${esc(step.q)}</div>
+  <div class="choices" id="ch">${step.choices.map((c,i)=>`<button class="choice" data-i="${i}">${esc(c)}</button>`).join("")}<button class="choice other" id="other">Something else / explain ›</button></div>
+  <div id="otherWrap" class="hide" style="margin-top:12px">
+   <textarea class="inp" id="otherTxt" maxlength="240" placeholder="In a few words, what do you do?"></textarea>
+   <div class="row" style="margin-top:10px"><button class="btn tint" id="otherGo">Continue →</button></div>
+  </div>`,'fill');
+ const adv=(ans)=>{S.disco.hist.push({q:step.q,a:ans});S.disco.step++;bump();discoStep();};
+ document.querySelectorAll("#ch .choice:not(.other)").forEach(b=>b.onclick=()=>adv(step.choices[+b.dataset.i]));
+ document.getElementById("other").onclick=()=>{document.getElementById("otherWrap").classList.remove("hide");document.getElementById("otherTxt").focus();};
+ document.getElementById("otherGo").onclick=()=>{const v=document.getElementById("otherTxt").value.trim();if(v.length<2)return;adv(v);};
+}
+function discoExtra(){
+ setTint("#a78bff");
+ render(`
+  <div class="eyebrow"><span class="d"></span>One more, optional</div>
+  <div class="q">Anything else you'd like to add about your work?</div>
+  <p class="lede">The more specific you are, the better your scenario will fit your actual job. Tools you use, who you work with, what a typical task looks like, anything helps.</p>
+  <div class="field"><textarea class="inp" id="extra" maxlength="600" placeholder="Optional. A sentence or two is plenty."></textarea></div>
+  <div class="row"><button class="btn tint" id="xgo">Continue →</button><button class="linkbtn" id="xskip">skip</button></div>`,'');
+ setTimeout(()=>{const e=document.getElementById("extra");if(e)e.focus();},120);
+ const fin=()=>{const v=document.getElementById("extra").value.trim();if(v)S.disco.hist.push({q:"Anything else about your work",a:v});bump();discoFinish();};
+ document.getElementById("xgo").onclick=fin;
+ document.getElementById("xskip").onclick=()=>{bump();discoFinish();};
+}
+async function discoFinish(){
+ if(liveMode()){
+   const hist=S.disco.hist.map(h=>`${h.q} -> ${h.a}`).join("; ");
+   const out=await callModel(`Job title: "${S.job}". Clarifying answers: ${hist}. In 2 sentences, describe this person's role, focus, work environment, and how they use AI, as context for generating a realistic work scenario for them. Output only the description.`);
+   S.roleSummary=(out&&out.trim())||((S.job||"a professional")+". "+S.disco.hist.map(h=>h.a).join(", "));
+ }else{S.roleSummary=(S.job||"a professional")+". "+S.disco.hist.map(h=>h.a).join(", ");}
+ const used=S.disco.hist.map(h=>(h.a||"").toLowerCase()).join(" ");
+ S.ability=/daily|most days|expert|every day/.test(used)?2.8:(/rarely|starting|now and then/.test(used)?1.6:2.2);
+ prefetchScenario(); // build the scenario in the background while they take the quiz
+ startRound();
+}
+
+/* ===================== ADAPTIVE QUESTION ROUND (20, CAT-lite) ===================== */
+const ROUND_N=20;
+function planDims(){ // cycle the four dimensions for even coverage (5 each over 20)
+ const p=[];for(let r=0;r<ROUND_N/ORDER.length;r++)for(const d of ORDER)p.push(d);return p;
+}
+function shuffle(n){const a=[...Array(n).keys()];for(let i=n-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function startRound(){S.plan=planDims();S.qIdx=0;nextQ();}
+function pickQ(dim){
+ const want=clamp(Math.round(S.ability),1,5); // target difficulty tracks ability
+ let pool=BANK.filter(b=>b.dim===dim&&!S.used.includes(b));
+ if(!pool.length)pool=BANK.filter(b=>!S.used.includes(b));
+ if(!pool.length)return null;
+ pool.sort((a,b)=>(Math.abs(a.d-want)-Math.abs(b.d-want))||(a.d-b.d));
+ return pool[0];
+}
+function diffTicks(){const w=clamp(Math.round(S.ability),1,5);return `<div class="diff"><div class="ticks">${[1,2,3,4,5].map(n=>`<i class="${n<=w?'on':''}"></i>`).join("")}</div><span class="lab">difficulty ${w}/5</span></div>`;}
+function nextQ(){
+ if(S.qIdx>=ROUND_N){startScenario();return;}
+ const dim=S.plan[S.qIdx];const it=pickQ(dim);if(!it){S.qIdx++;nextQ();return;}
+ S.used.push(it);const D=DIMS[it.dim];setTint(D.c);
+ const ord=shuffle(it.opts.length);              // shuffle so the answer isn't in a fixed slot
+ const correctPos=ord.indexOf(it.a);
+ render(`
+  <div class="qgrid">
+   <div class="qmain">
+    <div class="eyebrow"><span class="d"></span>${D.label} · ${esc(it.sub)}<span class="ct">${S.qIdx+1}/${ROUND_N}</span></div>
+    <div class="q">${esc(it.q)}</div>
+    ${diffTicks()}
+   </div>
+   <div class="opts" id="opts">${ord.map((oi,pos)=>`<button class="opt" data-pos="${pos}"><span class="k">${"ABCD"[pos]}</span>${esc(it.opts[oi])}</button>`).join("")}</div>
+  </div>`,'fill');
+ const opts=document.getElementById("opts");
+ const btns=[...opts.querySelectorAll(".opt")];
+ btns.forEach(btn=>btn.onclick=()=>{
+   opts.classList.add("locked");
+   const pos=+btn.dataset.pos,correct=pos===correctPos;
+   S.obs[it.dim].push({w:it.d,value:correct?1:0,ok:correct,edge:DIMS[it.dim].label+" — "+it.sub});
+   btns.forEach((b,p)=>{if(p===correctPos)b.classList.add("correct");else if(p===pos)b.classList.add("wrong");else b.classList.add("dim");});
+   const prev=Math.round(S.ability);
+   S.ability=clamp(S.ability+(correct?0.8:-1.1),1,5); // climb on right, drop faster on wrong
+   const now=Math.round(S.ability);
+   if(correct&&now>prev)toast("Difficulty up → "+now+"/5");
+   else if(!correct&&now<prev)toast("Easing off → "+now+"/5");
+   S.qIdx++;bump();
+   setTimeout(nextQ,620); // snappy
+ });
+}
+
+/* ===================== SCENARIO (job-personalized, live draft) ===================== */
+async function buildScenario(){
+ if(liveMode()){
+   const out=await callModel(`Build a realistic workplace scenario for this person, where they'd use an AI assistant to produce ONE deliverable.\nPerson: ${S.roleSummary||S.job||"a knowledge worker"}.\nReturn ONLY minified JSON: {"brief":"2 sentences, second person, with mild stakes and a deadline","task":"the deliverable, short noun phrase","resources":[ {"name":"realistic file name with a real extension (.docx,.pdf,.xlsx,.csv,.eml,.pptx)","type":"notes|style guide|schedule|email|transcript|data|example","relevant":true,"content":"FULL, realistic document content — multiple short paragraphs or bullet sections (roughly 8-16 lines), the way a real file would read, not a one-line summary","from":"(emails only) sender name","subject":"(emails only) subject line","date":"(emails only) short date"} ]}. Include 5-6 resources of MIXED types: at least one document (.docx/.pdf), at least one spreadsheet as comma-separated rows with a header line (type "data", .csv/.xlsx), and at least one email (type "email" with from/subject/date). Only SOME are relevant; include 1-2 convincing distractors marked relevant:false (an unrelated email thread, or confidential/unreleased material that must not be used). At least one relevant resource must contain a hard constraint or a specific fact. Make the content rich enough to read like a real file. Ground everything in this person's world. If any resource addresses the reader by name, use only "${S.name||'there'}" or "you" — never any other real person's name.`);
+   try{const j=parseJSON(out);if(j&&j.task&&Array.isArray(j.resources)&&j.resources.length)return {brief:j.brief,task:j.task,resources:j.resources,fallbackDraft:null};}catch(e){}
+ }
+ return JSON.parse(JSON.stringify(FALLBACK_SCENARIO));
+}
+function prefetchScenario(){ // start building during the quiz so there's no wait at the end
+ if(S.scenario||S.scenarioPromise)return;
+ S.scenarioPromise=buildScenario().then(s=>{if(!S.scenario)S.scenario=s;}).catch(()=>{if(!S.scenario)S.scenario=JSON.parse(JSON.stringify(FALLBACK_SCENARIO));});
+}
+async function startScenario(){
+ setTint("#34e0e0");
+ if(!S.scenario){
+   if(S.scenarioPromise){loading("Setting up your scenario…");try{await S.scenarioPromise;}catch(e){}}
+   if(!S.scenario)S.scenario=await buildScenario();
+ }
+ scWorkspace();
+}
+function ctx(){if(!S.docs.length)return "";return `<div class="ctx">${S.docs.map(d=>`<details class="doc" open><summary>${esc(d.label)}</summary><div class="docbody">${esc(d.content)}</div></details>`).join("")}</div>`;}
+function isMail(r){return /mail|email|eml|msg|inbox/.test(((r.type||"")+" "+(r.name||"")).toLowerCase());}
+function mailFrom(r){if(r.from)return r.from;const n=(r.name||"")+" "+(r.type||"");if(/confidential|hiring|scope|hr|people/i.test(n))return "People Ops";if(/kickoff|client|requirement|customer/i.test(n))return "Client contact";if(/potluck|party|social|lunch|team/i.test(n))return "A teammate";if(/legal|compliance/i.test(n))return "Legal";return "Internal";}
+function fileSVG(type){const t=(type||"").toLowerCase();
+ if(/mail|email|eml|msg/.test(t))return '<svg class="ticon" viewBox="0 0 40 50" fill="none"><rect x="4" y="11" width="32" height="23" rx="3" stroke="#34e0e0" stroke-width="2"/><path d="M5 13l15 11 15-11" stroke="#34e0e0" stroke-width="2"/></svg>';
+ if(/data|csv|sheet|xls/.test(t))return '<svg class="ticon" viewBox="0 0 40 50" fill="none"><rect x="6" y="4" width="28" height="42" rx="3" stroke="#35e3b4" stroke-width="2"/><path d="M6 18h28M6 31h28M16 8v38M26 8v38" stroke="#35e3b4" stroke-width="1.2" opacity=".7"/></svg>';
+ if(/slide|ppt|deck/.test(t))return '<svg class="ticon" viewBox="0 0 40 50" fill="none"><rect x="5" y="9" width="30" height="21" rx="3" stroke="#ffc24d" stroke-width="2"/><path d="M11 35h18M14 41h12" stroke="#ffc24d" stroke-width="2"/></svg>';
+ return '<svg class="ticon" viewBox="0 0 40 50" fill="none"><path d="M9 4h17l8 8v34H9z" stroke="#a78bff" stroke-width="2"/><path d="M26 4v8h8" stroke="#a78bff" stroke-width="2"/><path d="M14 23h12M14 29h12M14 35h8" stroke="#a78bff" stroke-width="1.5" opacity=".8"/></svg>';
+}
+function paras(s){return esc(s).split(/\n\n+/).map(p=>"<p>"+p.replace(/\n/g,"<br>")+"</p>").join("");}
+function sheetHTML(r){const lines=(r.content||"").split("\n");const rows=lines.filter(l=>l.includes(","));const notes=lines.filter(l=>l.trim()&&!l.includes(","));
+ if(!rows.length)return `<div class="page"><div class="meta">${esc(r.name)}</div>${paras(r.content)}</div>`;
+ const head=rows[0].split(","),body=rows.slice(1);
+ return `<div class="sheet"><table><thead><tr>${head.map(h=>`<th>${esc(h.trim())}</th>`).join("")}</tr></thead><tbody>${body.map(rw=>`<tr>${rw.split(",").map(c=>`<td>${esc(c.trim())}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`+(notes.length?`<div class="sheetnote">${paras(notes.join("\n"))}</div>`:"");
+}
+function emailHTML(r){const subj=r.subject||r.name.replace(/\.(eml|msg)$/i,"");
+ return `<div class="emailv"><div class="ehead"><div class="subj">${esc(subj)}</div><div class="er"><b>From</b> ${esc(mailFrom(r))}</div><div class="er"><b>To</b> You</div>${r.date?`<div class="er"><b>Date</b> ${esc(r.date)}</div>`:""}</div>${paras(r.content)}</div>`;
+}
+function docView(i){const r=(S.scenario.resources||[])[i];const t=((r.type||"")+" "+(r.name||"")).toLowerCase();
+ if(isMail(r))return emailHTML(r);
+ if(/data|csv|xls|sheet/.test(t)&&/,/.test(r.content||""))return sheetHTML(r);
+ if(/slide|ppt|deck|keynote/.test(t))return `<div class="slidev"><h4>${esc((r.subject||r.name).replace(/\.\w+$/,''))}</h4>${paras(r.content)}</div>`;
+ const word=/docx|\.doc|word|brief|memo|notes/.test(t);
+ return `<div class="page ${word?'word':''}"><div class="meta">${esc((r.type||'document'))} · ${esc(r.name)}</div>${paras(r.content)}</div>`;
+}
+/* ---- window manager (left monitor) ---- */
+let _clk=null;
+function startClock(){clearInterval(_clk);tickClock();_clk=setInterval(tickClock,30000);}
+function tickClock(){const e=document.getElementById("mbclock");if(e){const d=new Date();e.textContent=d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})+"   "+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});}}
+function winLabel(id){if(id==="mail")return "✉ Mail";const r=(S.scenario.resources||[])[+id.split(":")[1]];return (r&&r.name)||"Window";}
+function openWin(id){if(!S.win.order.includes(id))S.win.order.push(id);S.win.min[id]=false;focusWin(id);}
+function focusWin(id){S.win.order=S.win.order.filter(x=>x!==id);S.win.order.push(id);renderDesktop();}
+function minWin(id){S.win.min[id]=true;renderDesktop();}
+function closeWin(id){S.win.order=S.win.order.filter(x=>x!==id);delete S.win.min[id];renderDesktop();}
+function winHTML(id,k){
+ const R=S.scenario.resources||[];const z=12+S.win.order.indexOf(id);
+ if(id==="mail"){
+   const mailIdx=R.map((r,i)=>i).filter(i=>isMail(R[i]));
+   let sel=(S.win.mailsel!=null&&R[S.win.mailsel]&&isMail(R[S.win.mailsel]))?S.win.mailsel:mailIdx[0];
+   const list=mailIdx.map(i=>{const r=R[i],on=S.attached.includes(i);return `<div class="inrow ${i===sel?'sel':''} ${on?'on':''}" data-mail="${i}"><div class="if">${esc(mailFrom(r))}<span style="color:var(--faint);font-weight:400;font-size:11px">${esc(r.date||"")}</span></div><div class="it">${esc(r.subject||r.name.replace(/\.(eml|msg)$/i,''))}</div><div class="ip">${esc((r.content||'').replace(/\n/g,' ').slice(0,50))}…</div></div>`;}).join("");
+   const on=S.attached.includes(sel);
+   return `<div class="appwin" data-id="mail" style="z-index:${z};left:4%;top:42px;width:90%;height:calc(100% - 92px)"><div class="bar"><span class="title">Mail — Inbox (${mailIdx.length})</span><span class="wctrls"><button class="wc min" data-min="mail" title="Minimize">–</button><button class="wc close" data-close="mail" title="Close">×</button></span></div><div class="wbody"><div class="inbox"><div class="inlist">${list}</div><div class="inread">${sel!=null?emailHTML(R[sel]):'<div style="padding:30px;color:var(--faint)">Select a message.</div>'}</div></div></div><div class="wfoot">${sel!=null?`<span style="font-size:12px;color:var(--faint);margin-right:auto">Share this email with the AI →</span><button class="wbtn att" data-att="${sel}">${on?'✓ Shared with AI':'Share with AI'}</button>`:""}</div></div>`;
+ }
+ const i=+id.split(":")[1];const r=R[i];const on=S.attached.includes(i);
+ return `<div class="appwin" data-id="${id}" style="z-index:${z};left:${7+k*4}%;top:${50+k*16}px;width:80%;height:calc(100% - 108px)"><div class="bar"><span class="title">${esc(r.name)}</span><span class="wctrls"><button class="wc min" data-min="${id}" title="Minimize">–</button><button class="wc close" data-close="${id}" title="Close">×</button></span></div><div class="wbody">${docView(i)}</div><div class="wfoot"><span style="font-size:12px;color:var(--faint);margin-right:auto">Hand this file to the AI →</span><button class="wbtn att" data-att="${i}">${on?'✓ Attached':'Attach to AI'}</button></div></div>`;
+}
+function renderDesktop(){
+ const R=S.scenario.resources||[];const desk=document.getElementById("desktop");if(!desk)return;
+ const docIdx=R.map((r,i)=>i).filter(i=>!isMail(R[i]));
+ const hasMail=R.some(r=>isMail(r));
+ const icons=docIdx.map(i=>{const r=R[i],on=S.attached.includes(i);return `<div class="deskicon ${on?'on':''}" data-open="doc:${i}" data-i="${i}" draggable="true">${fileSVG(r.type)}<div class="nm">${esc(r.name)}</div></div>`;}).join("")
+   +(hasMail?`<div class="deskicon" data-open="mail">${fileSVG("email")}<div class="nm">Mail</div></div>`:"");
+ const openWins=S.win.order.filter(id=>!S.win.min[id]);
+ const wins=openWins.map((id,k)=>winHTML(id,k)).join("");
+ const minIds=S.win.order.filter(id=>S.win.min[id]);
+ const tb=minIds.length?minIds.map(id=>`<div class="tbitem" data-restore="${id}">${winLabel(id)}</div>`).join(""):'<span style="color:var(--faint);font-size:12px">Double-click a file or Mail to open it.</span>';
+ const hint=!S.hintDismissed?`<div class="deskhint"><span class="x" data-hint>✕</span><b>This is your desktop.</b> Open a file or the inbox, read what's there, then drag what the AI needs onto Display 2. You can share emails too.</div>`:"";
+ desk.innerHTML=`<div class="menubar"><span class="mb-app">Finder</span><span>File</span><span>Edit</span><span>View</span><span class="mb-clock" id="mbclock"></span></div>
+  <div class="deskicons">${icons}</div>${wins}${hint}
+  <div class="taskbar"><span style="font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--faint)">OPEN</span>${tb}</div>`;
+ desk.querySelectorAll(".deskicon").forEach(el=>{el.onclick=()=>openWin(el.dataset.open);el.addEventListener("dragstart",e=>e.dataTransfer.setData("text/plain",el.dataset.i||""));});
+ desk.querySelectorAll(".tbitem").forEach(el=>el.onclick=()=>{S.win.min[el.dataset.restore]=false;focusWin(el.dataset.restore);});
+ const hx=desk.querySelector("[data-hint]");if(hx)hx.onclick=()=>{S.hintDismissed=true;renderDesktop();};
+ openWins.forEach(id=>{const w=desk.querySelector('.appwin[data-id="'+id+'"]');if(!w)return;
+   w.addEventListener("mousedown",()=>{if(S.win.order[S.win.order.length-1]!==id)focusWin(id);});
+   w.querySelectorAll("[data-close]").forEach(el=>el.onclick=e=>{e.stopPropagation();closeWin(el.dataset.close);});
+   w.querySelectorAll("[data-min]").forEach(el=>el.onclick=e=>{e.stopPropagation();minWin(el.dataset.min);});
+   w.querySelectorAll("[data-att]").forEach(el=>el.onclick=e=>{e.stopPropagation();const i=+el.dataset.att;if(!isNaN(i))scToggle(i);});
+   w.querySelectorAll("[data-mail]").forEach(el=>el.onclick=()=>{S.win.mailsel=+el.dataset.mail;renderDesktop();});
+ });
+ tickClock();
+}
+/* ---- right monitor AI app ---- */
+function aiAppHTML(){
+ return `<div class="aiapp">
+   <div class="aibody">
+     <div class="aimsg">Hi${S.name?` ${esc(S.name)}`:""} — I'll help you put together <b>${esc((S.scenario&&S.scenario.task)||"your deliverable")}</b>. Bring over whatever I should work from on the left, then tell me what you need.</div>
+   </div>
+   <div class="aicompose"><div class="aiwrap" id="aiwrap">
+     <div class="aichips" id="aidrop"></div>
+     <textarea class="aiinput" id="ans" maxlength="3000" placeholder="Message fluent…"></textarea>
+     <div class="airow"><button class="aiclip" title="Attach from your desktop"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11l-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 6"/></svg></button><span class="hintx">drag files here to attach</span><button class="aisend" id="go" disabled>↑</button></div>
+   </div></div>
+ </div>`;
+}
+function refreshAI(){
+ const R=(S.scenario&&S.scenario.resources)||[];const drop=document.getElementById("aidrop");if(!drop)return;
+ drop.innerHTML=S.attached.length?S.attached.map(i=>`<span class="aichip">${fileSVG(R[i].type)} ${esc(R[i].name)} <b data-rm="${i}">✕</b></span>`).join(""):"";
+ drop.querySelectorAll("b[data-rm]").forEach(x=>x.onclick=()=>scToggle(+x.dataset.rm));
+ const go=document.getElementById("go"),ta=document.getElementById("ans");if(go&&ta)go.disabled=ta.value.trim().length<3;
+}
+function scToggle(i){const k=S.attached.indexOf(i);if(k>=0)S.attached.splice(k,1);else S.attached.push(i);renderDesktop();refreshAI();}
+function wireAI(){
+ const ta=document.getElementById("ans"),go=document.getElementById("go"),wrap=document.getElementById("aiwrap");
+ ta.addEventListener("input",()=>{ta.style.height="auto";ta.style.height=Math.min(ta.scrollHeight,140)+"px";go.disabled=ta.value.trim().length<3;});
+ wrap.addEventListener("dragover",e=>{e.preventDefault();wrap.classList.add("over");});
+ wrap.addEventListener("dragleave",()=>wrap.classList.remove("over"));
+ wrap.addEventListener("drop",e=>{e.preventDefault();wrap.classList.remove("over");const i=+e.dataTransfer.getData("text/plain");if(!isNaN(i)&&!S.attached.includes(i)){S.attached.push(i);renderDesktop();refreshAI();}});
+ go.onclick=()=>{
+   S.userPrompt=ta.value.trim();
+   const R=S.scenario.resources||[];const rel=R.filter(r=>r.relevant),aRel=S.attached.filter(i=>R[i].relevant).length,aIrr=S.attached.filter(i=>!R[i].relevant).length;
+   let v=rel.length?aRel/rel.length:0.5;v-=0.2*aIrr;v=clamp(v,0,1);
+   S.obs.description.push({w:4,value:v,ok:v>=0.75,edge:"Description — give the AI the right context, and leave out the noise"});
+   S.docs=S.attached.map(i=>({label:R[i].name,content:R[i].content}));
+   clearInterval(_clk);bump();scGenDraft();
+ };
+ refreshAI();
+}
+function scWorkspace(){
+ setTint("#34e0e0");
+ const R=S.scenario.resources||[];const firstMail=R.findIndex(r=>isMail(r));
+ S.win={order:firstMail>=0?["mail"]:[],min:firstMail>=0?{mail:true}:{},mailsel:firstMail>=0?firstMail:null};
+ S.hintDismissed=false;
+ render(`
+  <div class="eyebrow"><span class="d"></span>Your scenario</div>
+  <div class="brief">${esc(S.scenario.brief||"")}</div>
+  <p class="lede">Your dual-monitor setup. The desktop is on the left with your files and inbox; the AI is on the right. Open what you need, hand the AI the right files, and write your prompt.</p>
+  <div class="rig">
+   <div class="mon"><div class="mscreen"><div class="mscreenIn"><div class="desktop" id="desktop"></div></div><span class="led"></span></div><div class="stand"></div><div class="standbase"></div><div class="monlabel">Display 1 · Desktop</div></div>
+   <div class="mon"><div class="mscreen"><div class="mscreenIn">${aiAppHTML()}</div><span class="led"></span></div><div class="stand"></div><div class="standbase"></div><div class="monlabel">Display 2 · Assistant</div></div>
+  </div>`);
+ stage.classList.add("wide");
+ wireAI();renderDesktop();startClock();
+}
+function scMcq(eyebrowDim,sub,q,opts,a,edge,next){
+ const D=DIMS[eyebrowDim];setTint(D.c);
+ const ord=shuffle(opts.length);const correctPos=ord.indexOf(a);
+ render(`${ctx()}
+  <div class="qgrid">
+   <div class="qmain">
+    <div class="eyebrow"><span class="d"></span>${D.label} · ${esc(sub)}</div>
+    <div class="q">${esc(q)}</div>
+   </div>
+   <div class="opts" id="opts">${ord.map((oi,pos)=>`<button class="opt" data-pos="${pos}"><span class="k">${"ABCD"[pos]}</span>${esc(opts[oi])}</button>`).join("")}</div>
+  </div>`,'fill');
+ const el=document.getElementById("opts");const btns=[...el.querySelectorAll(".opt")];
+ btns.forEach(btn=>btn.onclick=()=>{
+   el.classList.add("locked");const pos=+btn.dataset.pos,correct=pos===correctPos;
+   S.obs[eyebrowDim].push({w:4,value:correct?1:0,ok:correct,edge});
+   btns.forEach((b,p)=>{if(p===correctPos)b.classList.add("correct");else if(p===pos)b.classList.add("wrong");else b.classList.add("dim");});
+   bump();setTimeout(next,720);
+ });
+}
+function scShort(sub,dim,ph,q,store,next){
+ const D=DIMS[dim];setTint(D.c);
+ render(`${ctx()}
+  <div class="eyebrow"><span class="d"></span>${D.label} · ${esc(sub)}</div>
+  <div class="q">${esc(q)}</div>
+  <div class="field"><textarea class="inp" id="ans" maxlength="2000" placeholder="${esc(ph)}"></textarea>
+   <div class="hint"><span>Write as much as you need. There's no length to hit.</span><span id="cc">0</span></div></div>
+  <div class="row"><button class="btn tint" id="aN" disabled>Submit &nbsp;→</button></div>`);
+ const ta=document.getElementById("ans"),btn=document.getElementById("aN"),cc=document.getElementById("cc");
+ setTimeout(()=>ta.focus(),120);
+ const grow=()=>{ta.style.height="auto";ta.style.height=Math.min(ta.scrollHeight,360)+"px";};
+ ta.addEventListener("input",()=>{cc.textContent=ta.value.length+" chars";btn.disabled=ta.value.trim().length<3;grow();});
+ btn.onclick=()=>{store(ta.value.trim());bump();next();};
+}
+async function scGenDraft(){
+ setTint("#34e0e0");
+ const R=S.scenario.resources||[];
+ const attachedText=S.attached.length?S.attached.map(i=>`[${R[i].name}]\n${R[i].content}`).join("\n\n"):"(the user attached no resources)";
+ if(liveMode()){
+   loading("The AI is drafting from your prompt…");
+   const out=await callModel(`You are a capable AI assistant. The user's prompt:\n"""${S.userPrompt}"""\nThey attached these resources as your ONLY source material:\n${attachedText}\nProduce ${S.scenario.task} as a real assistant would on a first attempt, using only what was attached. If important context was not attached, do your best, and it may come out generic or slightly off. Concise (4-8 sentences or a short structure). If you address anyone by name, use only "${S.name||'there'}" or "you" — never any other real person's name. Output only the deliverable, no preamble.`);
+   S.scenario.draft=(out&&out.trim())||S.scenario.fallbackDraft||FALLBACK_SCENARIO.fallbackDraft;
+ }else{S.scenario.draft=S.scenario.fallbackDraft||FALLBACK_SCENARIO.fallbackDraft;}
+ render(`
+  <div class="eyebrow"><span class="d"></span>The AI's draft</div>
+  <div class="big">Here's what your prompt produced.</div>
+  ${ctx()}
+  <div class="output"><div class="ol"><span class="dotai"></span>AI draft · from your prompt</div>${esc(S.scenario.draft)}</div>
+  <p class="lede">Read it like it's about to go out the door.</p>
+  <div class="row"><button class="btn tint" id="c">Continue &nbsp;→</button></div>`);
+ document.getElementById("c").onclick=()=>{S.docs.push({label:"AI draft · from your prompt",content:S.scenario.draft});bump();scDiscern();}
+}
+function scDiscern(){
+ scShort("Performance discernment","discernment",
+  "Be specific.",
+  "Look at the draft above. What would you check, fix, or push back on before using it?",
+  v=>{S.shorts.push({dim:"discernment",sub:"Performance discernment",w:3,q:"What to check/fix in the draft",text:v,
+    rubric:"Strong = names specific problems checked against the notes: unsupported or fabricated claims, missing/garbled facts, tone or constraint violations, things to verify. Partial = generic 'check the facts'. Weak = 'looks good' or style-only.",
+    keys:["verify","check","source","claim","fact","wrong","missing","constraint","tone","against","unsupported","made up","number","stat"],
+    edge:"Discernment: check the draft against your notes for unsupported claims and missing facts."});},
+  scDiligence);
+}
+function scDiligence(){
+ scShort("Creation diligence","diligence",
+  "A sentence or two.",
+  "Before this goes out as your work, what's your responsibility, and what would you verify or own?",
+  v=>{S.shorts.push({dim:"diligence",sub:"Creation diligence",w:3,q:"Responsibility before it ships",text:v,
+    rubric:"Strong = verify accuracy AND take ownership, protect any sensitive data, be transparent about AI's role where relevant. Partial = 'review it'. Weak = vague or hands it off.",
+    keys:["verify","accurate","own","check","responsib","accountab","data","privacy","disclose","transparent","confirm","correct"],
+    edge:"Diligence: verify accuracy and own what ships, don't outsource the responsibility."});},
+  scDeploy);
+}
+function scDeploy(){
+ scMcq("diligence","Deployment","If this became a task you do every week with AI, the best safeguard is to…",
+  ["Define what a bad result looks like and add a human check there","Always switch to the newest model","Run it twice each time","Save the prompt in a doc"],0,
+  "Diligence: build reused workflows around their failure point with a human check.",runScoring);
+}
+
+/* ===================== SCORING ===================== */
+function heuristicShort(sh){const t=(sh.text||"").toLowerCase();if(t.trim().length<5)return 0;const hits=(sh.keys||[]).filter(k=>t.includes(String(k).toLowerCase())).length;if(hits>=2)return 2;if(hits>=1)return 1;return 0;}
+async function judgeShorts(){
+ const out={};
+ if(liveMode()&&S.shorts.length){
+   try{
+     const body=S.shorts.map((s,i)=>`[${i}] ${s.dim}/${s.sub}\nQuestion: ${s.q}\nRubric: ${s.rubric}\nThe AI draft they're reacting to:\n${i===0?S.scenario.draft:"(see above)"}\nAnswer: ${JSON.stringify(s.text)}`).join("\n\n");
+     const res=await callModel(`You are a fair but demanding judge of AI-collaboration skill. Score EACH answer 0, 1, or 2 by its rubric, judging the thinking, not grammar or length.\n0 = absent, wrong, vague, or restates the prompt. 1 = on the right track but generic or missing part of the rubric. 2 = clearly meets the full rubric with specificity; reserve it, only give 2 when the answer genuinely nails every required element.\nBe strict. Do not give 2 for partial answers. Return ONLY minified JSON mapping index to score, e.g. {"0":1,"1":2}.\n\n${body}`);
+     const j=parseJSON(res);S.shorts.forEach((s,i)=>out[i]=clamp(j[String(i)],0,2));return out;
+   }catch(e){}
+ }
+ S.shorts.forEach((s,i)=>out[i]=heuristicShort(s));return out;
+}
+function flagFor(v){return v>=0.72?"yes":(v>=0.45?"mid":"no");}
+async function runScoring(){
+ setTint("#a78bff");
+ render(`<div class="center"><div class="eyebrow center" style="justify-content:center"><span class="d"></span>Reading how you collaborated</div><div class="coreS"><i></i><i></i><i></i></div><div class="big" id="sst">Scoring…</div></div>`);
+ const msgs=["Weighing your judgment calls…","Grading your written answers…","Mapping the four dimensions…"];let mi=0;
+ const tk=setInterval(()=>{const e=document.getElementById("sst");if(e)e.textContent=msgs[mi++%msgs.length];},950);
+ const judged=await judgeShorts();
+ S.shorts.forEach((s,i)=>{const v=(judged[i]||0)/2;S.obs[s.dim].push({w:s.w,value:v,ok:v>=0.75,edge:s.edge});});
+ await new Promise(r=>setTimeout(r,500));clearInterval(tk);
+ const dim={};ORDER.forEach(d=>{const o=S.obs[d];if(!o.length){dim[d]=0.5;return;}let p=0,m=0;o.forEach(x=>{m+=x.w;p+=x.w*x.value;});dim[d]=m?p/m:0.5;});
+ const composite=Math.round(ORDER.reduce((s,d)=>s+dim[d],0)/ORDER.length*100);
+ const level=LEVELS.find(l=>composite>=l.min&&composite<=l.max)||LEVELS[0];
+ const missed=[];ORDER.forEach(d=>S.obs[d].forEach(x=>{if(!x.ok&&x.edge)missed.push({w:x.w,edge:x.edge,d});}));
+ missed.sort((a,b)=>b.w-a.w);const edges=[];const seen=new Set();
+ for(const m of missed){if(seen.has(m.edge))continue;seen.add(m.edge);edges.push(m);if(edges.length>=3)break;}
+ S.result={dim,composite,level,edges};results();
+}
+
+/* ===================== RESULTS ===================== */
+function gauge(){const r=84,C=2*Math.PI*r;return `<svg viewBox="0 0 200 200" style="width:200px;height:200px"><defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="var(--tint)"/></linearGradient><filter id="gl"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><circle cx="100" cy="100" r="${r}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="13"/><circle id="garc" cx="100" cy="100" r="${r}" fill="none" stroke="url(#gg)" stroke-width="13" stroke-linecap="round" filter="url(#gl)" transform="rotate(-90 100 100)" stroke-dasharray="${C}" stroke-dashoffset="${C}"/></svg>`;}
+function countTo(el,to,ms){if(!el)return;let s=null;const step=t=>{if(!s)s=t;const p=Math.min(1,(t-s)/ms);el.textContent=Math.round(to*(0.5-0.5*Math.cos(p*Math.PI)));if(p<1)requestAnimationFrame(step);};requestAnimationFrame(step);}
+function results(){
+ const R=S.result;setTint("#a78bff");setProg(1);
+ const byScore=ORDER.slice().sort((a,b)=>R.dim[b]-R.dim[a]);const hi=byScore[0],lo=byScore[byScore.length-1];
+ const pillars=ORDER.map(d=>{const D=DIMS[d];const f=FLAGS[flagFor(R.dim[d])];const yes=flagFor(R.dim[d])==="yes";
+   return `<div class="pillar" style="--c:${D.c}"><div class="nm"><span class="ic">${D.icon}</span>${D.label}</div><span class="flagchip ${f.cls}"><span class="fd" style="background:${yes?D.c:'currentColor'}"></span>${f.label}</span><small>${yes?STRENGTH[d]:GROWTH[d]}</small></div>`;}).join("");
+ const edges=R.edges.length?R.edges.map(e=>`<div class="lever"><span class="dot" style="background:${DIMS[e.d].c}"></span><div>${esc(e.edge)}</div></div>`).join("")
+   :`<div class="lever"><span class="dot" style="background:var(--diligence)"></span><div>You didn't miss much. Push into the hardest items and the rarest habits to keep growing.</div></div>`;
+ render(`
+  <div class="eyebrow center" style="justify-content:center"><span class="d"></span>${S.name?esc(S.name)+"'s ":""}AI Fluency Profile</div>
+  <div class="hero"><div class="gauge">${gauge()}<div class="lbl"><b id="gnum">0</b><s>/ 100</s></div></div>
+    <div><div class="levelTitle">${R.level.t}</div><p class="lede" style="margin-top:10px">${R.level.n}</p></div></div>
+  <div class="pillars">${pillars}</div>
+  <div class="card2"><h3>Your growth edges</h3>${edges}</div>
+  <div class="card2"><h3>What stood out</h3>
+    <div class="lever"><span class="dot" style="background:${DIMS[hi].c}"></span><div><b>Strongest: ${DIMS[hi].label}.</b> ${STRENGTH[hi]}</div></div>
+    <div class="lever"><span class="dot" style="background:${DIMS[lo].c}"></span><div><b>Try next: ${DIMS[lo].label}.</b> ${GROWTH[lo]}</div></div></div>
+  <div class="row" style="justify-content:center"><button class="btn tint" onclick="restart()">Take it again</button><button class="ghost btn" onclick="dl()">Download my result</button></div>
+  <p class="disc center">Formative, not certified. Built on Anthropic's 4D AI Fluency Framework and its sub-competencies, plus adjacent fundamentals (how AI works, failure modes, ethics). An adaptive question round that escalates as you do well, then a scenario built around your job where the AI drafted from your own prompt. Dimensions shown as flags, not precise scores. Designed so a perfect score is rare for a human. ${liveMode()?"":"Offline preview — written answers scored by a built-in heuristic and the scenario uses a stock example; add an API key or run inside Claude for the live version."}</p>`);
+ requestAnimationFrame(()=>{const arc=document.getElementById("garc");if(arc){const r=84,C=2*Math.PI*r;arc.style.transition="stroke-dashoffset 1.5s cubic-bezier(.2,.8,.2,1)";requestAnimationFrame(()=>arc.style.strokeDashoffset=C*(1-R.composite/100));}countTo(document.getElementById("gnum"),R.composite,1400);});
+}
+function dl(){const R=S.result;const flags={};ORDER.forEach(d=>flags[d]=FLAGS[flagFor(R.dim[d])].label);
+ const out={tool:"Fluent — AI Fluency Check",at:new Date().toISOString(),name:S.name||null,job:S.job||null,composite:R.composite,level:R.level.t,dimensionFlags:flags,growthEdges:R.edges.map(e=>e.edge),mode:liveMode()?"live":"offline",
+  note:"Built on Anthropic's 4D framework + sub-competencies. Adaptive question round + job-personalized scenario with a draft generated from the user's prompt. Formative; designed so a perfect score is rare."};
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(out,null,2)],{type:"application/json"}));a.download="ai-fluency-result.json";a.click();}
+function restart(){S.name="";S.job="";S.roleSummary="";S.disco={hist:[],step:0};S.ability=2.2;S.qIdx=0;S.plan=[];S.used=[];S.shorts=[];S.scenario=null;S.scenarioPromise=null;S.attached=[];S.docs=[];S.userPrompt="";ORDER.forEach(d=>S.obs[d]=[]);S.result=null;DONE=0;intro();}
+
+/* sample preview: strong-but-imperfect */
+function sample(){
+ ORDER.forEach(d=>S.obs[d]=[]);
+ const seed={delegation:[[1,1],[3,1]],description:[[2,1],[3,0],[2,1]],discernment:[[1,1],[3,0],[3,.5],[3,1]],diligence:[[1,1],[3,1],[3,.5],[3,1]]};
+ ORDER.forEach(d=>seed[d].forEach(([w,v])=>S.obs[d].push({w,value:v,ok:v>=0.75,edge:GROWTH[d]})));
+ const dim={};ORDER.forEach(d=>{let p=0,m=0;S.obs[d].forEach(x=>{m+=x.w;p+=x.w*x.value;});dim[d]=p/m;});
+ const composite=Math.round(ORDER.reduce((s,d)=>s+dim[d],0)/4*100);
+ S.result={dim,composite,level:LEVELS.find(l=>composite>=l.min&&composite<=l.max)||LEVELS[0],
+  edges:[{w:3,edge:"How AI works: fluent confidence is not evidence of truth.",d:"discernment"},{w:3,edge:"Discernment: check what a confident answer skipped.",d:"discernment"}]};
+ results();
+}
+
+/* ===================== BOOT ===================== */
+(function(){S.live=liveMode();document.getElementById("modeChip").textContent=liveMode()?"● live AI":"● offline preview";intro();})();
+</script>
+</body>
+</html>
