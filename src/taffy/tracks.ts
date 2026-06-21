@@ -86,18 +86,18 @@ export function defaultEq(): EqState {
 // console initializes its EQ + compression to this, and the auto-mix button
 // settles to it (faders + pans live on TRACKS.mixDb/pan above). Keys are the
 // track ids plus "bus". Reverb is 0..1 (how much reverb is mixed in).
-export const MIX_REVERB = 0.23;
+export const MIX_REVERB = 0.4;
 
 export const MIX_EQ: Record<string, EqState> = {
-  kick: { bands: [{ freq: 220, gain: 5.3 }, { freq: 379, gain: 1 }, { freq: 2271, gain: 5.4 }, { freq: 7337, gain: -1.2 }], hpf: true, hpfFreq: 80, lpf: true, lpfFreq: 14000 },
+  kick: { bands: [{ freq: 226, gain: 1.3 }, { freq: 379, gain: 1 }, { freq: 2271, gain: 5.4 }, { freq: 7337, gain: -1.2 }], hpf: true, hpfFreq: 80, lpf: true, lpfFreq: 14000 },
   kickout: { bands: [{ freq: 99, gain: 8.9 }, { freq: 238, gain: 8 }, { freq: 1421, gain: -8.3 }, { freq: 9000, gain: 0 }], hpf: true, hpfFreq: 80, lpf: true, lpfFreq: 14000 },
-  snare: { bands: [{ freq: 140, gain: 7.3 }, { freq: 301, gain: 2.8 }, { freq: 1522, gain: -6.3 }, { freq: 8147, gain: -2.6 }], hpf: true, hpfFreq: 80, lpf: true, lpfFreq: 14000 },
+  snare: { bands: [{ freq: 140, gain: 7.3 }, { freq: 301, gain: 2.8 }, { freq: 1047, gain: -12.8 }, { freq: 8147, gain: -2.6 }], hpf: true, hpfFreq: 80, lpf: true, lpfFreq: 14000 },
   snarebot: { bands: [{ freq: 90, gain: 0 }, { freq: 500, gain: 0 }, { freq: 2038, gain: -4.9 }, { freq: 3202, gain: 3.2 }], hpf: true, hpfFreq: 80, lpf: true, lpfFreq: 14000 },
-  racktom: { bands: [{ freq: 150, gain: 5.1 }, { freq: 500, gain: 0 }, { freq: 2332, gain: 0.8 }, { freq: 6160, gain: -1.3 }], hpf: true, hpfFreq: 80, lpf: true, lpfFreq: 14000 },
+  racktom: { bands: [{ freq: 215, gain: 6.7 }, { freq: 590, gain: -3.7 }, { freq: 3372, gain: 6.1 }, { freq: 7330, gain: 4.3 }], hpf: true, hpfFreq: 80, lpf: true, lpfFreq: 14000 },
   floortom: { bands: [{ freq: 157, gain: 1.2 }, { freq: 613, gain: -0.1 }, { freq: 2059, gain: -2.9 }, { freq: 4767, gain: 9 }], hpf: true, hpfFreq: 80, lpf: true, lpfFreq: 14000 },
-  "oh-left": { bands: [{ freq: 225, gain: -5.8 }, { freq: 829, gain: -9.4 }, { freq: 2726, gain: -6.8 }, { freq: 5735, gain: 2.2 }], hpf: true, hpfFreq: 80, lpf: true, lpfFreq: 14000 },
-  "oh-right": { bands: [{ freq: 225, gain: -5.8 }, { freq: 829, gain: -9.4 }, { freq: 2726, gain: -6.8 }, { freq: 5735, gain: 2.2 }], hpf: true, hpfFreq: 80, lpf: true, lpfFreq: 14000 },
-  room: { bands: [{ freq: 135, gain: -2.1 }, { freq: 500, gain: 0 }, { freq: 3428, gain: 2.5 }, { freq: 7084, gain: 7.5 }], hpf: true, hpfFreq: 80, lpf: true, lpfFreq: 14000 },
+  "oh-left": { bands: [{ freq: 360, gain: -15 }, { freq: 936, gain: -9.7 }, { freq: 2772, gain: -6.5 }, { freq: 5735, gain: 2.2 }], hpf: true, hpfFreq: 80, lpf: true, lpfFreq: 14000 },
+  "oh-right": { bands: [{ freq: 360, gain: -15 }, { freq: 936, gain: -9.7 }, { freq: 2772, gain: -6.5 }, { freq: 5735, gain: 2.2 }], hpf: true, hpfFreq: 80, lpf: true, lpfFreq: 14000 },
+  room: { bands: [{ freq: 135, gain: -2.1 }, { freq: 1164, gain: -11 }, { freq: 3428, gain: 2.5 }, { freq: 7084, gain: 7.5 }], hpf: true, hpfFreq: 80, lpf: true, lpfFreq: 14000 },
   bus: { bands: [{ freq: 90, gain: 0 }, { freq: 608, gain: -3.4 }, { freq: 2161, gain: -3.6 }, { freq: 6129, gain: 7 }], hpf: true, hpfFreq: 80, lpf: true, lpfFreq: 14000 },
 };
 
@@ -106,12 +106,12 @@ export const MIX_COMP: Record<string, CompState> = {
   kickout: { on: true, threshold: -40.9, ratio: 2.5, attack: 0.015, release: 0.18, knee: 28.2, makeup: 0 },
   snare: { on: true, threshold: -8.3, ratio: 1.9, attack: 0.001, release: 0.06, knee: 11.7, makeup: 0 },
   snarebot: { on: true, threshold: -35, ratio: 20, attack: 0.001, release: 0.18, knee: 28.7, makeup: 0 },
-  racktom: { on: true, threshold: -22.5, ratio: 7, attack: 0.001, release: 0.046, knee: 16.8, makeup: 0 },
+  racktom: { on: true, threshold: -9.2, ratio: 6.6, attack: 0.017, release: 0.02, knee: 0, makeup: 0 },
   floortom: { on: true, threshold: -33.7, ratio: 8.8, attack: 0.015, release: 0.18, knee: 24.5, makeup: 0 },
   "oh-left": { on: true, threshold: -44.8, ratio: 5.4, attack: 0.015, release: 0.18, knee: 32.9, makeup: 0 },
   "oh-right": { on: true, threshold: -44.8, ratio: 5.4, attack: 0.015, release: 0.18, knee: 32.9, makeup: 0 },
   room: { on: true, threshold: -48.9, ratio: 3.7, attack: 0.015, release: 0.18, knee: 25.4, makeup: 3.7 },
-  bus: { on: true, threshold: -15.9, ratio: 4.4, attack: 0.01, release: 0.225, knee: 8, makeup: 0 },
+  bus: { on: true, threshold: -7.5, ratio: 7.8, attack: 0.01, release: 0.225, knee: 0, makeup: 3.1 },
 };
 
 // Deep clones, so the live console state owns mutable copies (editing a strip
@@ -147,7 +147,7 @@ export const TRACKS: Track[] = [
     voice: "kick",
     pan: 0,
     rawDb: 0,
-    mixDb: -27.8,
+    mixDb: -28.9,
     eqMix: [
       { type: "highpass", freq: 34, gain: 0, q: 0.7 },
       { type: "lowshelf", freq: 70, gain: 3.5, q: 0.7 },
@@ -162,7 +162,7 @@ export const TRACKS: Track[] = [
     voice: "kick",
     pan: 0,
     rawDb: 0,
-    mixDb: -24.9,
+    mixDb: -31.5,
   },
   {
     id: "snare",
@@ -171,7 +171,7 @@ export const TRACKS: Track[] = [
     voice: "snare",
     pan: 0,
     rawDb: 0,
-    mixDb: -9.5,
+    mixDb: -14,
     eqMix: [
       { type: "highpass", freq: 110, gain: 0, q: 0.7 },
       { type: "peaking", freq: 220, gain: 2.5, q: 0.9 },
@@ -186,7 +186,7 @@ export const TRACKS: Track[] = [
     voice: "snare",
     pan: 0,
     rawDb: 0,
-    mixDb: -40.4,
+    mixDb: -37.6,
   },
   {
     id: "racktom",
@@ -195,7 +195,7 @@ export const TRACKS: Track[] = [
     voice: "tom",
     pan: -0.46,
     rawDb: 0,
-    mixDb: -31.2,
+    mixDb: -30.5,
     eqMix: [
       { type: "highpass", freq: 90, gain: 0, q: 0.7 },
       { type: "peaking", freq: 240, gain: 3, q: 1.1 },
@@ -210,7 +210,7 @@ export const TRACKS: Track[] = [
     voice: "tom",
     pan: 0.35,
     rawDb: 0,
-    mixDb: -28.7,
+    mixDb: -30.6,
     eqMix: [
       { type: "highpass", freq: 60, gain: 0, q: 0.7 },
       { type: "peaking", freq: 110, gain: 3, q: 1.0 },
@@ -225,7 +225,7 @@ export const TRACKS: Track[] = [
     voice: "hat",
     pan: -1,
     rawDb: 0,
-    mixDb: -19.7,
+    mixDb: -22.4,
     eqMix: [
       { type: "highpass", freq: 260, gain: 0, q: 0.7 },
       { type: "peaking", freq: 700, gain: -2.5, q: 1.2 },
@@ -239,7 +239,7 @@ export const TRACKS: Track[] = [
     voice: "hat",
     pan: 1,
     rawDb: 0,
-    mixDb: -19.7,
+    mixDb: -22.4,
     eqMix: [
       { type: "highpass", freq: 260, gain: 0, q: 0.7 },
       { type: "peaking", freq: 700, gain: -2.5, q: 1.2 },
@@ -253,7 +253,7 @@ export const TRACKS: Track[] = [
     voice: "room",
     pan: 0,
     rawDb: 0,
-    mixDb: -29,
+    mixDb: -29.7,
     eqMix: [
       { type: "highpass", freq: 120, gain: 0, q: 0.7 },
       { type: "peaking", freq: 450, gain: -3, q: 1.0 },

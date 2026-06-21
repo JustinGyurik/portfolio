@@ -619,39 +619,29 @@ export class TaffyEngine {
   // flam (processing shifts the processed transients a few ms; a long crossfade
   // doubles every beat). The "comes alive" smoothness instead comes from the
   // boost / reverb / fader / pan all ramping over `dur`.
-  setAutoMix(on: boolean, dur = 1.2) {
+  setAutoMix(on: boolean) {
     if (!this.ctx) return;
     this.mixed = on;
     const now = this.ctx.currentTime;
 
-    // Equal-power swap curves (shared across channels; setValueCurve copies them).
-    const N = 33;
-    const raw = new Float32Array(N);
-    const mix = new Float32Array(N);
-    for (let i = 0; i < N; i++) {
-      const th = (i / (N - 1)) * (Math.PI / 2);
-      // on: raw 1->0 (cos), mix 0->1 (sin); off: reversed.
-      raw[i] = on ? Math.cos(th) : Math.sin(th);
-      mix[i] = on ? Math.sin(th) : Math.cos(th);
-    }
-    const XF = 0.09;
+    // INSTANT switch. Everything moves together over a single tiny ramp (~12ms):
+    // long enough to avoid a click, short enough to be inaudible. Crucially the
+    // bus makeup snaps with the source, so raw never plays through the +17 dB
+    // boost (that overlap was the "really loud for a second" blast on Taffy Off).
+    const RAMP = 0.012;
     for (const ch of this.channels.values()) {
       ch.rawGain.gain.cancelScheduledValues(now);
       ch.mixGain.gain.cancelScheduledValues(now);
-      ch.rawGain.gain.setValueCurveAtTime(raw, now, XF);
-      ch.mixGain.gain.setValueCurveAtTime(mix, now, XF);
+      ch.rawGain.gain.setValueAtTime(ch.rawGain.gain.value, now);
+      ch.mixGain.gain.setValueAtTime(ch.mixGain.gain.value, now);
+      ch.rawGain.gain.linearRampToValueAtTime(on ? 0 : 1, now + RAMP);
+      ch.mixGain.gain.linearRampToValueAtTime(on ? 1 : 0, now + RAMP);
     }
-    // Bloom IN slowly (comes alive), but drop OUT fast: when turning auto-mix
-    // off, the source snaps back to raw in ~90ms, so the boost/reverb must come
-    // down with it or raw plays through the boost and blasts for a moment.
-    const rampDur = on ? dur : 0.12;
-    // The "comes alive" makeup: drive the bus louder into the glue comp on
-    // auto-mix. This is bus gain, not the visible fader.
     if (this.busBoost) {
       const target = on ? dbToGain(AUTOMIX_BUS_BOOST_DB) : 1;
       this.busBoost.gain.cancelScheduledValues(now);
       this.busBoost.gain.setValueAtTime(this.busBoost.gain.value, now);
-      this.busBoost.gain.linearRampToValueAtTime(target, now + rampDur);
+      this.busBoost.gain.linearRampToValueAtTime(target, now + RAMP);
     }
     // Reverb is its own knob now (setReverb), independent of auto-mix.
   }

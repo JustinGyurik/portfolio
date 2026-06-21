@@ -284,3 +284,9 @@ body::before {
 }
 .taffy-breathe { animation: taffy-breathe 2.6s ease-in-out infinite; transform-origin: 50% 50%; }
 @media (prefers-reduced-motion: reduce) { .taffy-breathe { animation: none; } }
+/* Auto Mix first-press countdown: each number pops in. */
+@keyframes taffy-pop {
+  0% { transform: scale(1.6); opacity: 0; }
+  30% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.92); opacity: 0.85; }
+}

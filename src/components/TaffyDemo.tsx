@@ -82,8 +82,21 @@ export default function TaffyDemo({ onClose }: { onClose: () => void }) {
   // Master reverb amount (0..1) = Justin's mix.
   const [reverb, setReverb] = useState(MIX_REVERB);
   // Transport
-  const [paused, setPaused] = useState(false);
   const [looping, setLooping] = useState(true);
+  // First Auto Mix press plays a 5-count reveal; after that it's instant A/B.
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const firstMixRef = useRef(false);
+  // Lock the waveform to the channel-strip rack width (measured live).
+  const rackRef = useRef<HTMLDivElement | null>(null);
+  const [rackW, setRackW] = useState(0);
+  useEffect(() => {
+    const el = rackRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setRackW(el.offsetWidth));
+    ro.observe(el);
+    setRackW(el.offsetWidth);
+    return () => ro.disconnect();
+  }, [phase]);
 
   // Live, per-frame visuals written straight to the DOM (no React re-render).
   const needleRefs = useRef<Record<string, SVGLineElement | null>>({});
@@ -117,7 +130,7 @@ export default function TaffyDemo({ onClose }: { onClose: () => void }) {
         engine.applyEq("bus", flat);
         engine.applyComp("bus", { ...defaultBusComp(), on: false });
         engine.setReverb(0);
-        engine.onEnded = () => { setPlaying(false); setPaused(false); };
+        engine.onEnded = () => { setPlaying(false); };
         setPhase("ready");
       })
       .catch((e) => {
@@ -197,19 +210,16 @@ export default function TaffyDemo({ onClose }: { onClose: () => void }) {
     await engine.play();
     engine.applyMuteSolo(chan);
     setPlaying(true);
-    setPaused(false);
   }, [playing, chan]);
   const onPause = useCallback(() => {
     const engine = engineRef.current;
     if (!engine || !playing) return;
     engine.pause();
     setPlaying(false);
-    setPaused(true);
   }, [playing]);
   const onStop = useCallback(() => {
     engineRef.current?.stop();
     setPlaying(false);
-    setPaused(false);
   }, []);
   const onLoop = useCallback(() => {
     setLooping((on) => {
@@ -298,46 +308,83 @@ export default function TaffyDemo({ onClose }: { onClose: () => void }) {
   // Flat EQ shown on every strip in "Before" mode (raw = no processing).
   const flatEqDisplay = useMemo(() => defaultEq(), []);
 
-  // ---- auto-mix: the master A/B ---------------------------------------------
-  // Before Taffy (off) = raw mics at unity, ZERO processing (a clean reference).
-  // After Taffy (on)   = processed source + Justin's full mix (faders, EQ, comp,
-  // pan, reverb). The mix lives in React state and persists across toggles.
-  const runAutoMix = useCallback((on: boolean) => {
+  // ---- Auto Mix / Taffy Off (two plain buttons, not a toggle) ----------------
+  // Auto Mix ALWAYS slams everyone back to Justin's baked baseline, discarding
+  // any tweaks, and brings the console alive (color). Taffy Off bypasses to raw
+  // unity with zero processing (and drains the site of color).
+  const applyBaseline = useCallback(() => {
     const engine = engineRef.current;
     if (!engine) return;
     setMixing(true);
-    setMixed(on);
-    mixedRef.current = on;
-    engine.setAutoMix(on, on ? 1.2 : 0.3);
-    if (on) {
-      // Apply the stored mix to every strip + the bus.
-      TRACKS.forEach((t) => {
-        engine.setFaderDb(t.id, faders[t.id] ?? t.mixDb);
-        engine.setPan(t.id, pans[t.id] ?? t.pan);
-        engine.applyEq(t.id, eqStates[t.id]);
-        engine.applyComp(t.id, comps[t.id]);
-      });
-      engine.setMasterDb(faders.bus ?? 0);
-      engine.applyEq("bus", eqStates.bus);
-      engine.applyComp("bus", comps.bus);
-      engine.setReverb(reverb);
-    } else {
-      // Hard bypass: unity, flat EQ, comps off, centered, no reverb.
-      const flat = defaultEq();
-      const off = { ...defaultComp(), on: false };
-      TRACKS.forEach((t) => {
-        engine.setFaderDb(t.id, 0);
-        engine.setPan(t.id, 0);
-        engine.applyEq(t.id, flat);
-        engine.applyComp(t.id, off);
-      });
-      engine.setMasterDb(0);
-      engine.applyEq("bus", flat);
-      engine.applyComp("bus", { ...defaultBusComp(), on: false });
-      engine.setReverb(0);
+    setMixed(true);
+    mixedRef.current = true;
+    // reset React state to the baked baseline (discard any user tweaks)
+    setFaders({ ...Object.fromEntries(TRACKS.map((t) => [t.id, t.mixDb])), bus: 0 });
+    setPans(Object.fromEntries(TRACKS.map((t) => [t.id, t.pan])));
+    setEqStates({ ...Object.fromEntries(TRACKS.map((t) => [t.id, mixEq(t.id)])), bus: mixEq("bus") });
+    setComps({ ...Object.fromEntries(TRACKS.map((t) => [t.id, mixComp(t.id)])), bus: mixComp("bus") });
+    setReverb(MIX_REVERB);
+    setOhLink(true);
+    // apply the baseline to the engine (instant switch)
+    engine.setAutoMix(true);
+    TRACKS.forEach((t) => {
+      engine.setFaderDb(t.id, t.mixDb);
+      engine.setPan(t.id, t.pan);
+      engine.applyEq(t.id, mixEq(t.id));
+      engine.applyComp(t.id, mixComp(t.id));
+    });
+    engine.setMasterDb(0);
+    engine.applyEq("bus", mixEq("bus"));
+    engine.applyComp("bus", mixComp("bus"));
+    engine.setReverb(MIX_REVERB);
+    window.setTimeout(() => setMixing(false), 120);
+  }, []);
+
+  // The first Auto Mix press is the reveal: start the raw drums immediately, run
+  // a big 5-count over everything, then burst into color + the mix. After that,
+  // Auto Mix is instant so they can A/B against Taffy Off.
+  const autoMix = useCallback(() => {
+    if (firstMixRef.current) {
+      applyBaseline();
+      return;
     }
-    window.setTimeout(() => setMixing(false), on ? 1200 : 300);
-  }, [faders, pans, eqStates, comps, reverb]);
+    firstMixRef.current = true;
+    onPlay(); // raw drums start playing right away (still in Taffy-off state)
+    let n = 5;
+    setCountdown(5);
+    const iv = window.setInterval(() => {
+      n -= 1;
+      if (n <= 0) {
+        window.clearInterval(iv);
+        setCountdown(null);
+        applyBaseline();
+      } else {
+        setCountdown(n);
+      }
+    }, 1000);
+  }, [applyBaseline, onPlay]);
+
+  const taffyOff = useCallback(() => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    setMixing(true);
+    setMixed(false);
+    mixedRef.current = false;
+    engine.setAutoMix(false);
+    const flat = defaultEq();
+    const off = { ...defaultComp(), on: false };
+    TRACKS.forEach((t) => {
+      engine.setFaderDb(t.id, 0);
+      engine.setPan(t.id, 0);
+      engine.applyEq(t.id, flat);
+      engine.applyComp(t.id, off);
+    });
+    engine.setMasterDb(0);
+    engine.applyEq("bus", flat);
+    engine.applyComp("bus", { ...defaultBusComp(), on: false });
+    engine.setReverb(0);
+    window.setTimeout(() => setMixing(false), 120);
+  }, []);
 
   // ---- settings export / import (the copy-paste-to-Justin box) ---------------
   // The full editable mix (faders, pans, EQ + comp per strip and the bus, reverb,
@@ -365,36 +412,18 @@ export default function TaffyDemo({ onClose }: { onClose: () => void }) {
     return JSON.stringify({ faders: fadersOut, pans: pansOut, reverb: r2(reverb), ohLink, eq: eqOut, comp: compOut }, null, 2);
   }, [faders, pans, eqStates, comps, reverb, ohLink]);
 
-  // Load a pasted settings blob: set state, engage "After Taffy", push to engine.
-  const applyMixText = useCallback((text: string): string | null => {
-    let s: { faders?: Record<string, number>; pans?: Record<string, number>; reverb?: number; ohLink?: boolean; eq?: Record<string, EqState>; comp?: Record<string, CompState> };
-    try { s = JSON.parse(text); } catch { return "Couldn't parse that — is it valid JSON?"; }
-    if (!s || typeof s !== "object") return "That isn't a settings object.";
-    const num = (v: unknown, d: number) => (typeof v === "number" && isFinite(v) ? v : d);
-    if (s.faders) setFaders((prev) => ({ ...prev, ...s.faders }));
-    if (s.pans) setPans((prev) => ({ ...prev, ...s.pans }));
-    if (s.eq) setEqStates((prev) => ({ ...prev, ...s.eq }));
-    if (s.comp) setComps((prev) => ({ ...prev, ...s.comp }));
-    if (typeof s.reverb === "number") setReverb(s.reverb);
-    if (typeof s.ohLink === "boolean") setOhLink(s.ohLink);
-    setMixed(true); setMixing(true); mixedRef.current = true;
-    const e = engineRef.current;
-    if (e) {
-      e.setAutoMix(true, 0.6);
-      TRACKS.forEach((t) => {
-        e.setFaderDb(t.id, num(s.faders?.[t.id], t.mixDb));
-        e.setPan(t.id, num(s.pans?.[t.id], t.pan));
-        e.applyEq(t.id, s.eq?.[t.id] ?? eqStates[t.id]);
-        e.applyComp(t.id, s.comp?.[t.id] ?? comps[t.id]);
-      });
-      e.setMasterDb(num(s.faders?.bus, 0));
-      e.applyEq("bus", s.eq?.bus ?? eqStates.bus);
-      e.applyComp("bus", s.comp?.bus ?? comps.bus);
-      e.setReverb(num(s.reverb, reverb));
+  // Tiny, almost-hidden export: copy the full current mix as JSON (for tuning).
+  const [copied, setCopied] = useState(false);
+  const copyMix = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(settingsJson);
+    } catch {
+      // eslint-disable-next-line no-console
+      console.log(settingsJson);
     }
-    window.setTimeout(() => setMixing(false), 600);
-    return null;
-  }, [eqStates, comps, reverb]);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1400);
+  }, [settingsJson]);
 
   // ---- esc to close ----------------------------------------------------------
   useEffect(() => {
@@ -403,24 +432,32 @@ export default function TaffyDemo({ onClose }: { onClose: () => void }) {
     return () => window.removeEventListener("keydown", onEsc);
   }, [onClose]);
 
+  // When Taffy is off the whole console drains of color; only Auto Mix keeps it.
+  const desat = `transition-[filter] duration-700 ${mixed ? "" : "grayscale"}`;
+
   return (
     <div className="taffy taffy-root relative flex h-full w-full flex-col overflow-hidden">
-      <div className="taffy-sky" aria-hidden="true" />
+      {/* inline filter so it wins over the .taffy-sky CSS filter; drains color when off */}
+      <div
+        className="taffy-sky transition-[filter] duration-700"
+        style={{ filter: mixed ? "blur(26px) saturate(1.4)" : "blur(26px) grayscale(1)" }}
+        aria-hidden="true"
+      />
 
-      {/* header */}
-      <header className="relative z-[1] flex items-center justify-between gap-4 px-5 pb-1 pt-4 sm:px-7">
-        <div className="flex items-baseline gap-3">
+      {/* header: big Taffy wordmark + the two transport buttons */}
+      <header className="relative z-[1] flex flex-wrap items-center justify-between gap-x-5 gap-y-2 px-5 pb-1 pt-4 sm:px-7">
+        <div className={`flex items-baseline gap-3 ${desat}`}>
           <span
-            className="taffy-ink text-[40px] font-bold leading-none"
-            style={{ color: "#ef476f", WebkitTextStroke: `2px ${INK}` }}
+            className="taffy-ink text-[64px] font-bold leading-none sm:text-[88px]"
+            style={{ color: "#ef476f", WebkitTextStroke: `2.5px ${INK}` }}
           >
             Taffy
           </span>
-          <span className="taffy-ink hidden text-[20px] font-bold leading-none text-[#2a241d]/55 sm:inline">
+          <span className="taffy-ink hidden text-[28px] font-bold leading-none text-[#2a241d]/55 sm:inline">
             drum console
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {synth && (
             <WobbleButton fill="#fffdf7" seed={91} className="hidden text-[16px] text-[#2a241d]/70 md:block">
               demo kit
@@ -432,53 +469,24 @@ export default function TaffyDemo({ onClose }: { onClose: () => void }) {
         </div>
       </header>
 
-      {/* top bar: the hero auto-mix A/B, centered + breathing to invite the click */}
-      <div className="relative z-[1] flex items-center justify-center px-5 pb-3 pt-1 sm:px-7">
-        <button
-          id="taffy-automix"
-          type="button"
-          onClick={() => runAutoMix(!mixed)}
-          disabled={phase !== "ready"}
-          aria-pressed={mixed}
-          title={mixed ? "After Taffy: the mixed, processed drums — click for the raw mics" : "Before Taffy: the raw mics — click to hear Taffy mix them"}
-          className={`taffy-ink relative transition active:translate-y-[2px] disabled:opacity-40 focus-visible:outline-none ${
-            !mixed && phase === "ready" && !mixing ? "taffy-breathe" : ""
-          }`}
-        >
-          <WobbleBox seed={42} fill={mixed ? "busfill" : "#fffdf7"} stroke="rainbow" sw={4.5} amp={2.8} shadow>
-            <div className="flex items-center justify-center gap-3 px-10 py-3 text-[36px] font-bold leading-none">
-              <span aria-hidden="true" className="text-[26px]">{mixed ? "✓" : "✦"}</span>
-              {mixed ? "auto-mixed" : "auto-mix"}
-            </div>
-          </WobbleBox>
-        </button>
-
-        {/* status, tucked right so the button stays the centerpiece */}
-        <div className="taffy-ink absolute right-5 hidden items-center gap-3 text-[18px] font-bold leading-none text-[#2a241d]/55 sm:flex sm:right-7">
-          {anySolo && <span className="text-[#caa000]">solo on</span>}
-          {ohLink && <span className="text-[#3a86ff]">OH linked</span>}
-          <span>{mixed ? "after taffy" : "raw mics"}</span>
-        </div>
-      </div>
-
-      {/* scrubbable waveform + transport */}
+      {/* scrubbable waveform + transport, locked to the channel-strip rack width */}
       {phase === "ready" && (
-        <div className="relative z-[1] px-5 pb-2 sm:px-7">
-          <WaveformPlayer
-            engineRef={engineRef}
-            playing={playing}
-            paused={paused}
-            looping={looping}
-            onPlay={onPlay}
-            onPause={onPause}
-            onStop={onStop}
-            onLoop={onLoop}
-          />
+        <div className={`relative z-[1] px-5 pb-2 sm:px-7 ${desat}`}>
+          <div className="mx-auto w-full" style={{ maxWidth: rackW || undefined }}>
+            <WaveformPlayer
+              engineRef={engineRef}
+              looping={looping}
+              onPlay={onPlay}
+              onPause={onPause}
+              onStop={onStop}
+              onLoop={onLoop}
+            />
+          </div>
         </div>
       )}
 
-      {/* console */}
-      <div className="relative z-[1] flex-1 overflow-hidden">
+      {/* console: strips at the top, the story + buttons fill the space below */}
+      <div className="relative z-[1] flex flex-1 flex-col overflow-hidden">
         {phase === "loading" && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
             <div className="taffy-ink text-[24px] font-bold text-[#2a241d]/70">warming up the kit…</div>
@@ -493,8 +501,10 @@ export default function TaffyDemo({ onClose }: { onClose: () => void }) {
           </div>
         )}
         {phase === "ready" && (
-          <div className="scroll-thin flex h-full items-start overflow-x-auto px-3 pt-[50px] sm:px-6">
+          <>
+          <div className={`scroll-thin flex shrink-0 items-start overflow-x-auto px-3 pt-[50px] sm:px-6 ${desat}`}>
             <div
+              ref={rackRef}
               className={`mx-auto flex w-fit items-stretch gap-2.5 pb-2 transition-opacity duration-700 sm:gap-3 ${
                 mixed ? "" : "opacity-[0.72]"
               }`}
@@ -552,8 +562,71 @@ export default function TaffyDemo({ onClose }: { onClose: () => void }) {
               />
             </div>
           </div>
+
+          {/* the story + buttons fill the space below the strips; this block is
+              NOT desaturated, so Auto Mix keeps its color when Taffy is off */}
+          <div className="flex flex-1 flex-col items-center justify-center px-8 pb-8">
+            {/* block is centered on screen; the text inside is left-aligned */}
+            <div className="flex w-full max-w-[1000px] flex-col items-start gap-8 text-left">
+            <p className="taffy-ink text-[32px] font-bold leading-snug text-[#2a241d]/85 sm:text-[38px]" style={{ WebkitTextStroke: "0.4px #2a241d" }}>
+              Those nine channels are the raw, unmixed drum mics, straight off the kit. Hit Auto Mix and watch Taffy identify every mic, pull the bleed, shape each drum, and glue the whole thing into a finished mix. Then dig in yourself: click any channel and push the faders, EQ, and compression wherever you want.
+            </p>
+            <div className="flex flex-wrap items-center gap-6">
+              {/* Auto Mix: the ONE thing that keeps its color when Taffy is off */}
+              <button
+                id="taffy-automix"
+                type="button"
+                onClick={autoMix}
+                disabled={countdown !== null}
+                title="Auto Mix: build the finished mix"
+                className={`taffy-ink relative transition active:translate-y-[2px] disabled:opacity-40 focus-visible:outline-none ${
+                  !mixed && !mixing && countdown === null ? "taffy-breathe" : ""
+                }`}
+              >
+                <WobbleBox seed={42} fill="busfill" stroke="rainbow" sw={5} amp={3} shadow>
+                  <div className="flex items-center justify-center gap-3 px-12 py-4 text-[40px] font-bold leading-none">
+                    <span aria-hidden="true" className="text-[30px]">✦</span>
+                    Auto Mix
+                  </div>
+                </WobbleBox>
+              </button>
+              {/* Taffy Off: bypass to the raw mics; greys out with everything else */}
+              <button
+                type="button"
+                onClick={taffyOff}
+                disabled={countdown !== null}
+                title="Taffy Off: bypass to the raw mics"
+                className={`taffy-ink relative transition active:translate-y-[2px] disabled:opacity-40 focus-visible:outline-none ${desat}`}
+              >
+                <WobbleBox seed={43} fill="#fffdf7" stroke={INK} sw={3.5} amp={2.4} shadow>
+                  <div className="flex items-center justify-center px-9 py-4 text-[30px] font-bold leading-none text-[#2a241d]/70">
+                    Taffy Off
+                  </div>
+                </WobbleBox>
+              </button>
+            </div>
+            </div>
+          </div>
+          </>
         )}
       </div>
+
+      {/* first-press reveal: big countdown over everything, then color bursts in */}
+      {countdown !== null && (
+        <div className="absolute inset-0 z-[40] flex items-center justify-center" style={{ background: "rgba(20,16,12,0.28)" }}>
+          <div
+            key={countdown}
+            className="taffy-ink font-bold leading-none text-[#fffdf7]"
+            style={{
+              fontSize: "clamp(140px, 34vw, 360px)",
+              textShadow: "0 6px 30px rgba(0,0,0,0.4)",
+              animation: "taffy-pop 1s ease-out",
+            }}
+          >
+            {countdown}
+          </div>
+        </div>
+      )}
 
       {/* compressor popup */}
       {compOpen && (
@@ -568,77 +641,17 @@ export default function TaffyDemo({ onClose }: { onClose: () => void }) {
         />
       )}
 
-      {phase === "ready" && <SettingsPanel json={settingsJson} onApply={applyMixText} />}
-
-      <footer className="taffy-ink relative z-[1] px-5 py-1.5 text-center text-[15px] font-bold leading-none text-[#2a241d]/45 sm:px-7">
-        click a VU to compress · drag EQ curves & faders · scrub the waveform — all live
-      </footer>
-    </div>
-  );
-}
-
-// ---- settings export / import box --------------------------------------------
-
-function SettingsPanel({ json, onApply }: { json: string; onApply: (text: string) => string | null }) {
-  const [draft, setDraft] = useState<string | null>(null); // null = mirror live JSON
-  const [copied, setCopied] = useState(false);
-  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
-  const [open, setOpen] = useState(true);
-  const taRef = useRef<HTMLTextAreaElement>(null);
-  const value = draft ?? json;
-  const edited = draft != null && draft !== json;
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(value);
-    } catch {
-      // Fallback for sandboxed/insecure contexts: select + execCommand.
-      const ta = taRef.current;
-      if (ta) { ta.focus(); ta.select(); try { document.execCommand("copy"); } catch { /* noop */ } }
-    }
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1400);
-  };
-  const load = () => {
-    const err = onApply(value);
-    if (err) setMsg({ text: err, ok: false });
-    else { setMsg({ text: "loaded — engaged After Taffy ✓", ok: true }); setDraft(null); }
-    window.setTimeout(() => setMsg(null), 2200);
-  };
-
-  const btn = "taffy-ink taffy-hand-sm border-[2.5px] border-[#2a241d] bg-[#fffdf7] px-3 py-1 text-[16px] font-bold leading-tight transition active:translate-y-[1px]";
-  return (
-    <div className="relative z-[1] px-5 pb-2 pt-1 sm:px-7">
-      <WobbleBox seed={314} fill="#fffdf7" stroke="rainbow" sw={3} amp={2.2} shadow>
-        <div className="taffy-ink px-4 py-2.5">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="text-[24px] font-bold leading-none" style={{ color: "#8338ec" }}>mix settings</span>
-            <span className="text-[15px] font-bold leading-tight text-[#2a241d]/45">
-              the whole mix as JSON — copy it to Justin, or paste one in and load it
-            </span>
-            <div className="ml-auto flex items-center gap-2">
-              <button onClick={copy} className={btn} style={copied ? { background: "#caffd9", borderColor: "#0a9b6c" } : undefined}>
-                {copied ? "copied ✓" : "copy"}
-              </button>
-              <button onClick={load} className={btn} style={edited ? { background: "#ffe7a8" } : undefined}>load</button>
-              <button onClick={() => setOpen((o) => !o)} className={btn} aria-label={open ? "collapse" : "expand"}>{open ? "▾" : "▸"}</button>
-            </div>
-          </div>
-          {open && (
-            <textarea
-              ref={taRef}
-              value={value}
-              onChange={(e) => setDraft(e.target.value)}
-              spellCheck={false}
-              aria-label="Mix settings JSON"
-              className="mt-2 h-[120px] w-full resize-none rounded border-[2.5px] border-[#2a241d] bg-[#fffef9] p-2 font-mono text-[12px] leading-snug text-[#2a241d] focus:outline-none sm:h-[150px]"
-            />
-          )}
-          {msg && (
-            <div className="mt-1 text-[15px] font-bold leading-tight" style={{ color: msg.ok ? "#0a9b6c" : "#e63946" }}>{msg.text}</div>
-          )}
-        </div>
-      </WobbleBox>
+      {/* tiny, almost-hidden export (just for tuning the baked mix) */}
+      {phase === "ready" && (
+        <button
+          type="button"
+          onClick={copyMix}
+          title="Copy the current mix as JSON"
+          className={`absolute bottom-1.5 right-3 z-[2] text-[11px] lowercase tracking-wide text-[#2a241d]/25 transition hover:text-[#2a241d]/60 ${desat}`}
+        >
+          {copied ? "copied ✓" : "export"}
+        </button>
+      )}
     </div>
   );
 }
@@ -1210,7 +1223,6 @@ function Knob({ label, value, onChange, color }: { label: string; value: number;
 function Fader({ db, onChange, label, color, capFill }: { db: number; onChange: (db: number) => void; label: string; color: string; capFill?: string }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
-  const [drag, setDrag] = useState(false); // glide the cap on auto-mix, but not while dragging
   const fromClientY = useCallback((clientY: number) => {
     const el = trackRef.current;
     if (!el) return;
@@ -1218,9 +1230,9 @@ function Fader({ db, onChange, label, color, capFill }: { db: number; onChange: 
     const frac = 1 - Math.max(0, Math.min(1, (clientY - r.top) / r.height));
     onChange(fracToDb(frac));
   }, [onChange]);
-  const onDown = (e: React.PointerEvent) => { dragging.current = true; setDrag(true); try { (e.target as HTMLElement).setPointerCapture(e.pointerId); } catch { /* synthetic */ } fromClientY(e.clientY); };
+  const onDown = (e: React.PointerEvent) => { dragging.current = true; try { (e.target as HTMLElement).setPointerCapture(e.pointerId); } catch { /* synthetic */ } fromClientY(e.clientY); };
   const onMove = (e: React.PointerEvent) => { if (dragging.current) fromClientY(e.clientY); };
-  const onUp = () => { dragging.current = false; setDrag(false); };
+  const onUp = () => { dragging.current = false; };
   const onKey = (e: React.KeyboardEvent) => {
     const big = e.shiftKey ? 6 : 1;
     if (e.key === "ArrowUp" || e.key === "ArrowRight") { onChange(db + big); e.preventDefault(); }
@@ -1249,7 +1261,7 @@ function Fader({ db, onChange, label, color, capFill }: { db: number; onChange: 
       <div className="absolute left-1/2 h-[2px] w-4 -translate-x-1/2 bg-[#2a241d]/40" style={{ top: `${dbToTop(0)}%` }} />
       <div
         className="absolute left-1/2 h-[23px] w-[36px] -translate-x-1/2 -translate-y-1/2 border-[2.5px] border-[#2a241d]"
-        style={{ top: `${top}%`, background: capFill || color, borderRadius: 6, boxShadow: "2px 3px 0 rgba(42,36,29,0.22)", transition: drag ? "none" : "top 0.8s cubic-bezier(.22,.61,.36,1)" }}
+        style={{ top: `${top}%`, background: capFill || color, borderRadius: 6, boxShadow: "2px 3px 0 rgba(42,36,29,0.22)" }}
       >
         <div className="absolute inset-x-1 top-1/2 h-[2.5px] -translate-y-1/2 rounded bg-[#2a241d]/55" />
       </div>
@@ -1268,8 +1280,6 @@ function fmtTime(s: number) {
 
 function WaveformPlayer({
   engineRef,
-  playing,
-  paused,
   looping,
   onPlay,
   onPause,
@@ -1277,8 +1287,6 @@ function WaveformPlayer({
   onLoop,
 }: {
   engineRef: React.MutableRefObject<TaffyEngine | null>;
-  playing: boolean;
-  paused: boolean;
   looping: boolean;
   onPlay: () => void;
   onPause: () => void;
@@ -1393,12 +1401,27 @@ function WaveformPlayer({
         </svg>
       </div>
 
-      {/* transport + time below the waveform */}
-      <div className="mt-2 flex items-center gap-2.5">
-        <WobbleButton id="taffy-play" seed={31} fill={playing ? "#06d6a0" : "#fffdf7"} onClick={onPlay} className="text-[19px]">▶ play</WobbleButton>
-        <WobbleButton seed={32} fill={paused ? "#ffd166" : "#fffdf7"} onClick={onPause} className="text-[19px]">❚❚ pause</WobbleButton>
-        <WobbleButton seed={33} fill="#fffdf7" onClick={onStop} className="text-[19px]">■ stop</WobbleButton>
-        <WobbleButton seed={34} fill={looping ? "#8338ec" : "#fffdf7"} stroke={looping ? "#8338ec" : INK} onClick={onLoop} className={`text-[19px] ${looping ? "text-[#fffdf7]" : ""}`}>⟳ loop{sel ? " §" : ""}</WobbleButton>
+      {/* transport: one consistent set of black icons, same size, no colors */}
+      <div className="mt-3 flex items-center gap-7">
+        <button type="button" onClick={onPlay} aria-label="Play"
+          className="text-[#2a241d]/75 transition hover:scale-110 hover:text-[#2a241d] active:translate-y-[1px]">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l10.5-6.5z" /></svg>
+        </button>
+        <button type="button" onClick={onPause} aria-label="Pause"
+          className="text-[#2a241d]/75 transition hover:scale-110 hover:text-[#2a241d] active:translate-y-[1px]">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><rect x="6.5" y="5.5" width="3.6" height="13" rx="0.6" /><rect x="13.9" y="5.5" width="3.6" height="13" rx="0.6" /></svg>
+        </button>
+        <button type="button" onClick={onStop} aria-label="Stop"
+          className="text-[#2a241d]/75 transition hover:scale-110 hover:text-[#2a241d] active:translate-y-[1px]">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1.4" /></svg>
+        </button>
+        <button type="button" onClick={onLoop} aria-label={looping ? "Looping" : "Loop off"} aria-pressed={looping}
+          className={`transition hover:scale-110 active:translate-y-[1px] ${looping ? "text-[#2a241d]" : "text-[#2a241d]/40 hover:text-[#2a241d]/75"}`}>
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 2l4 4-4 4" /><path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+            <path d="M7 22l-4-4 4-4" /><path d="M21 13v1a4 4 0 0 1-4 4H3" />
+          </svg>
+        </button>
         <span ref={timeRef} className="taffy-ink ml-auto whitespace-nowrap text-[28px] font-bold tabular-nums leading-none text-[#2a241d]/80">0:00 / 1:00</span>
       </div>
     </div>
