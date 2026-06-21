@@ -36,6 +36,7 @@ export default function BuildsCarousel() {
   const [zoom, setZoom] = useState<Build | null>(null);
   const [demo, setDemo] = useState<Build | null>(null); // launched interactive demo
   const [reduce, setReduce] = useState(false);
+  const [hoverSlot, setHoverSlot] = useState<number | null>(null); // which neighbor card is hovered
   const [dims, setDims] = useState({ cw: 300, ch: 420, r: 440, persp: 930, segW: 50 });
 
   useEffect(() => {
@@ -98,6 +99,7 @@ export default function BuildsCarousel() {
     // event bubbling from the segments, and onPointerLeave ends a drag that
     // exits the stage.
     drag.current = { x: e.clientX, startRot: rotation, active: true, moved: false, cur: rotation };
+    setHoverSlot(null); // spinning by drag clears the neighbor highlight
   };
   const onPointerMove = (e: React.PointerEvent) => {
     const d = drag.current;
@@ -181,7 +183,9 @@ export default function BuildsCarousel() {
                 return (
                   <div
                     key={`${c}-${i}`}
-                    className={`cf-seg ${isCenter ? "center" : ""}`}
+                    className={`cf-seg ${isCenter ? "center" : ""} ${
+                      !isCenter && hoverSlot === c ? "neighbor-hover" : ""
+                    }`}
                     style={{
                       // Overlap each slice slightly so the facet seams close up.
                       width: segW + 2,
@@ -192,10 +196,19 @@ export default function BuildsCarousel() {
                       pointerEvents: cardOpacity < 0.5 ? "none" : "auto",
                     }}
                     aria-hidden={!isCenter}
+                    // Hovering a side card outlines the whole card (all its slices
+                    // share the slot index `c`) as a cue that clicking spins it in.
+                    onMouseEnter={() => {
+                      if (!isCenter && !drag.current.active) setHoverSlot(c);
+                    }}
+                    onMouseLeave={() => setHoverSlot((h) => (h === c ? null : h))}
                     onClick={() => {
                       if (drag.current.moved) return;
                       if (isCenter) setZoom(b);
-                      else setRotation(rotation + cardAngle);
+                      else {
+                        setHoverSlot(null);
+                        setRotation(rotation + cardAngle);
+                      }
                     }}
                   >
                     <div
@@ -216,16 +229,9 @@ export default function BuildsCarousel() {
         </div>
       </div>
 
-      {/* the carousel's OWN controls: arrows live with the dots so they read as
-          wheel navigation, not section navigation */}
+      {/* The wheel's own position indicator: dots double as jump-to controls.
+          No arrows; the side cards highlight on hover to invite the next pick. */}
       <div className="mt-6 flex items-center justify-center gap-4">
-        <button
-          onClick={() => goToBuild((activeBuild - 1 + n) % n)}
-          aria-label="Previous build"
-          className="glass glass-blur flex h-10 w-10 items-center justify-center rounded-full text-lg text-paper transition hover:border-clay/60 hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay"
-        >
-          ←
-        </button>
         <div className="flex items-center gap-2">
           {BUILDS.map((b, i) => (
             <button
@@ -239,19 +245,12 @@ export default function BuildsCarousel() {
             />
           ))}
         </div>
-        <button
-          onClick={() => goToBuild((activeBuild + 1) % n)}
-          aria-label="Next build"
-          className="glass glass-blur flex h-10 w-10 items-center justify-center rounded-full text-lg text-paper transition hover:border-clay/60 hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay"
-        >
-          →
-        </button>
-        <span className="ml-1 text-[14px] tracking-wide text-faint">
+        <span className="ml-1 font-sans text-[13px] tracking-wide text-faint">
           {activeBuild + 1} / {n}
         </span>
       </div>
       <p className="mt-3 text-center text-[14px] text-muted">
-        Spin the wheel or use the arrows. Click the front card to zoom in.
+        Click a side card to bring it forward. Click the front card to open it.
       </p>
 
       {zoom && <ZoomPanel build={zoom} onClose={() => setZoom(null)} onLaunch={setDemo} />}

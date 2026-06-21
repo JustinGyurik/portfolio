@@ -109,21 +109,21 @@ export const EXPERIENCE = [
   {
     role: "Education Senior Consultant",
     org: "FICO, Integrated Learning Organization",
-    years: "2024 — Present",
+    years: "2024 – Present",
     notes:
       "FICO's primary consultant for AI enablement. Architect and own the AI Enablement Platform (a Claude Enterprise plugin). Primary tester and power user of Claude Enterprise, Claude Code, and Cowork. Created the company-wide GenAI training, run monthly enablement workshops, and host the AI in Action live series (events to 1,000+ live attendees). Created FICO's process for internal-facing MCP servers and shipped the first one, partnering with Cyber Security and Corporate IT. Promoted ahead of cycle.",
   },
   {
     role: "Director of Laboratory and Simulation Education",
     org: "Anne Arundel Community College, School of Health Sciences",
-    years: "2020 — 2024",
+    years: "2020 – 2024",
     notes:
       "Oversaw twenty health-science labs and the simulation center, leading a team of six. Led lab design and equipment purchasing for a $115M simulation facility, and managed a $1M annual operating budget across ten programs.",
   },
   {
     role: "Instructional Technology Project Manager",
     org: "Notre Dame of Maryland University, School of Pharmacy",
-    years: "2012 — 2020",
+    years: "2012 – 2020",
     notes:
       "Director of the School of Pharmacy IT office. Shipped custom technology solutions end to end: needs analysis, build, vendor coordination, training, and iteration.",
   },
@@ -137,8 +137,8 @@ export const FACTS = {
     "Craft": ["Claude Code", "Cowork", "Vite", "native audio (C++ / JUCE)"],
   },
   education: [
-    "MA, Adult Education and Communications Technology — Indiana University of Pennsylvania, 2010",
-    "BS, Communications Media (Audio Production focus) — Indiana University of Pennsylvania, 2009",
+    "MA, Adult Education and Communications Technology · Indiana University of Pennsylvania, 2010",
+    "BS, Communications Media (Audio Production focus) · Indiana University of Pennsylvania, 2009",
     "Project Management Professional (PMP), 2015",
   ],
 };

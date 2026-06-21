@@ -64,13 +64,6 @@ export default function About() {
               Happy to walk you through any of this, or just trade notes. Email is
               the easiest way to reach me.
             </p>
-            <a
-              href={PROFILE.resume}
-              download
-              className="mt-5 inline-flex items-center gap-2 rounded-full border border-line px-5 py-2.5 text-sm font-medium text-paper transition hover:border-clay hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay"
-            >
-              Download résumé <span aria-hidden="true">↓</span>
-            </a>
           </div>
           <div className="flex flex-col gap-1 font-sans text-sm">
             <a

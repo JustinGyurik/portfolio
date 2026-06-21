@@ -213,6 +213,20 @@ body::before {
 .cf-seg.center .cf-card::after {
   opacity: 0.1;
 }
+/* The cards invite clicking: front card opens, side cards spin to front. */
+.cf-seg { cursor: pointer; }
+/* Hovering a side card outlines it in the magenta accent (distinct from the
+   violet center border) so a visitor sees it is the next selectable build.
+   A border, not a glow: each slice clips overflow, so a box-shadow would seam. */
+.cf-seg.neighbor-hover .cf-card {
+  border-color: rgba(232, 121, 249, 1);
+  /* Lift the hovered side card clearly above its dimmed siblings so the
+     magenta edge reads as a real "pick this next" outline. */
+  filter: brightness(1.08) saturate(1.12) !important;
+}
+.cf-seg.neighbor-hover .cf-card::after {
+  opacity: 0.06;
+}
 /* Soft focus halo behind the front card. */
 .cf-halo {
   position: absolute;

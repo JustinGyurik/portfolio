@@ -107,9 +107,10 @@ export default function App() {
           ))}
         </div>
 
-        {/* section drawers: named peeks for the adjacent slides (not the carousel) */}
-        <DeckDrawer dir="left" label={SLIDES[(realIndex - 1 + n) % n].label} onClick={() => go(-1)} />
-        <DeckDrawer dir="right" label={SLIDES[(realIndex + 1) % n].label} onClick={() => go(1)} />
+        {/* minimal edge controls to move between slides; the bottom nav names
+            every section, so these stay quiet and icon-only */}
+        <DeckEdge dir="left" label={SLIDES[(realIndex - 1 + n) % n].label} onClick={() => go(-1)} />
+        <DeckEdge dir="right" label={SLIDES[(realIndex + 1) % n].label} onClick={() => go(1)} />
 
         {/* scrim so scrolling content fades cleanly under the section nav
             instead of running raggedly behind it */}
@@ -149,27 +150,22 @@ export default function App() {
   );
 }
 
-// A labeled "drawer" at each screen edge that names the adjacent section, so it
-// reads as section navigation (distinct from the carousel's own arrows). It
-// peeks at the edge and slides fully out on hover.
-function DeckDrawer({ dir, label, onClick }: { dir: "left" | "right"; label: string; onClick: () => void }) {
+// A quiet, icon-only control at each screen edge for moving between slides. It
+// sits low-key by default and brightens on hover/focus. The bottom nav already
+// names every section, so this stays minimal: no labels, no peeking drawer.
+function DeckEdge({ dir, label, onClick }: { dir: "left" | "right"; label: string; onClick: () => void }) {
   const left = dir === "left";
   return (
     <button
       onClick={onClick}
       aria-label={`Go to ${label}`}
-      className={`group glass glass-blur fixed top-1/2 z-40 hidden -translate-y-1/2 items-center gap-2.5 py-3.5 text-paper transition-all duration-300 hover:border-clay/60 hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay sm:flex ${
-        left
-          ? "left-0 -translate-x-[42%] rounded-r-2xl pl-4 pr-4 hover:translate-x-0"
-          : "right-0 translate-x-[42%] rounded-l-2xl pl-4 pr-4 hover:translate-x-0"
+      className={`group fixed top-1/2 z-40 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-line/70 bg-ink/30 text-muted opacity-50 backdrop-blur transition-all duration-300 hover:border-clay/60 hover:bg-ink/50 hover:text-clay hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay sm:flex ${
+        left ? "left-5" : "right-5"
       }`}
     >
-      {left && <span aria-hidden="true" className="text-xl leading-none transition-transform group-hover:-translate-x-0.5">←</span>}
-      <span className={`flex flex-col leading-tight ${left ? "items-start" : "items-end"}`}>
-        <span className="text-[12px] uppercase tracking-widest text-faint group-hover:text-clay/70">{left ? "Prev" : "Next"}</span>
-        <span className="whitespace-nowrap text-[15px] font-medium tracking-wide">{label}</span>
-      </span>
-      {!left && <span aria-hidden="true" className="text-xl leading-none transition-transform group-hover:translate-x-0.5">→</span>}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
+        {left ? <polyline points="15 18 9 12 15 6" /> : <polyline points="9 18 15 12 9 6" />}
+      </svg>
     </button>
   );
 }
