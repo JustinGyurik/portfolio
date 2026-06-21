@@ -366,9 +366,12 @@ textarea.inp{font-size:17px;min-height:120px;resize:vertical;line-height:1.5}
  (2) your own API key for standalone hosting (fill MODEL_CONFIG.apiKey, or set window.FLUENT_API_KEY),
  (3) if neither is present, a built-in fallback scenario + heuristic scoring so it never breaks.
  NOTE: shipping a raw key in client code exposes it; for production, proxy the call. */
-const MODEL_CONFIG={ apiKey:"", model:"claude-3-5-haiku-latest", maxTokens:800 };
+const MODEL_CONFIG={ apiKey:"", proxyUrl:"/api/fluent", model:"claude-haiku-4-5-20251001", maxTokens:800 };
 function apiKey(){return MODEL_CONFIG.apiKey || (typeof window!=="undefined"&&window.FLUENT_API_KEY) || "";}
-function liveMode(){return !!(window.cowork&&typeof window.cowork.askClaude==="function") || !!apiKey();}
+// (4) a same-origin server-side proxy that holds the key (used on the deployed
+// portfolio, so the key never ships to the browser). Wins over the raw-key path.
+function proxyUrl(){return MODEL_CONFIG.proxyUrl || (typeof window!=="undefined"&&window.FLUENT_PROXY_URL) || "";}
+function liveMode(){return !!(window.cowork&&typeof window.cowork.askClaude==="function") || !!proxyUrl() || !!apiKey();}
 async function callModel(prompt){
  // append a unique nonce so identical-looking prompts from a prior run are never served from cache
  const p=prompt+"\n\n<!-- req:"+Date.now().toString(36)+Math.random().toString(36).slice(2,10)+" (ignore) -->";
@@ -376,6 +379,12 @@ async function callModel(prompt){
    if(window.cowork&&typeof window.cowork.askClaude==="function"){
      const r=await window.cowork.askClaude(p);
      return typeof r==="string"?r:(r&&(r.text||r.content||r.completion))||String(r);
+   }
+   if(proxyUrl()){
+     const res=await fetch(proxyUrl(),{method:"POST",headers:{"content-type":"application/json"},
+       body:JSON.stringify({prompt:p,model:MODEL_CONFIG.model,maxTokens:MODEL_CONFIG.maxTokens})});
+     if(res.ok){const j=await res.json();if(j&&j.text)return j.text;}
+     // proxy missing/failed (e.g. standalone file with no server) -> fall through
    }
    if(apiKey()){
      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",
