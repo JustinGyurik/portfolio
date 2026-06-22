@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { BUILDS, type Build } from "../content/justin";
 import { useIsMobile } from "../hooks/useIsMobile";
@@ -267,6 +267,12 @@ export default function BuildsCarousel() {
 // escapes the deck's transformed track (a transformed ancestor would otherwise
 // become the containing block for `position: fixed` and break full-screen).
 function DemoHost({ build, onClose }: { build: Build; onClose: () => void }) {
+  const isMobile = useIsMobile();
+  // Taffy is a dense, fixed-size mixer whose faders/EQ all capture touch, so it
+  // can neither be scrolled nor reflowed cleanly on a phone. Instead the whole
+  // console is scaled to fit the screen: everything visible and tappable at once,
+  // no scrolling. (Best in landscape; a hint nudges portrait users to rotate.)
+  const taffyMobile = isMobile && build.demo === "taffy";
   return createPortal(
     <div className="fixed inset-0 z-[60] bg-ink" role="dialog" aria-modal="true" aria-label={`${build.name} demo`}>
       <Suspense
@@ -276,11 +282,68 @@ function DemoHost({ build, onClose }: { build: Build; onClose: () => void }) {
           </div>
         }
       >
-        {build.demo === "taffy" && <TaffyDemo onClose={onClose} />}
+        {build.demo === "taffy" &&
+          (taffyMobile ? (
+            <>
+              <ScaleToFit w={1560} h={1400}>
+                <TaffyDemo onClose={onClose} />
+              </ScaleToFit>
+              {/* always-tappable controls that live OUTSIDE the scaled console */}
+              <button
+                onClick={onClose}
+                aria-label="Close demo"
+                className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-line bg-ink/70 text-lg text-paper backdrop-blur transition active:scale-95"
+              >
+                ✕
+              </button>
+              <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center landscape:hidden">
+                <span className="rounded-full border border-line bg-ink/70 px-3.5 py-1.5 font-sans text-[12px] uppercase tracking-wide text-muted backdrop-blur">
+                  Rotate your phone for a bigger view
+                </span>
+              </div>
+            </>
+          ) : (
+            <TaffyDemo onClose={onClose} />
+          ))}
         {build.demo === "fluent" && <FluentDemo onClose={onClose} />}
       </Suspense>
     </div>,
     document.body
+  );
+}
+
+// Scales a fixed-size child down to fit the viewport (used for the Taffy console
+// on phones). Recomputes on resize/orientation change. The child renders at its
+// natural `w`x`h` and is transform-scaled, so all internal layout and pointer
+// math stay intact (the browser maps touches through the transform).
+function ScaleToFit({ w, h, children }: { w: number; h: number; children: ReactNode }) {
+  const [scale, setScale] = useState(() =>
+    typeof window === "undefined" ? 0.3 : Math.min(window.innerWidth / w, window.innerHeight / h)
+  );
+  useLayoutEffect(() => {
+    const compute = () => setScale(Math.min(window.innerWidth / w, window.innerHeight / h));
+    compute();
+    window.addEventListener("resize", compute);
+    window.addEventListener("orientationchange", compute);
+    return () => {
+      window.removeEventListener("resize", compute);
+      window.removeEventListener("orientationchange", compute);
+    };
+  }, [w, h]);
+  return (
+    <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+      <div
+        style={{
+          width: w,
+          height: h,
+          flexShrink: 0,
+          transform: `scale(${scale})`,
+          transformOrigin: "center center",
+        }}
+      >
+        {children}
+      </div>
+    </div>
   );
 }
 

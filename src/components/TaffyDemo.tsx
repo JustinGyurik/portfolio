@@ -11,7 +11,6 @@ import {
 import { TaffyEngine } from "../taffy/engine";
 import { TRACKS, EQ_BAND_DEFAULTS, defaultEq, defaultComp, defaultBusComp, mixEq, mixComp, MIX_REVERB, type EqState, type EqBand, type CompState } from "../taffy/tracks";
 import { curvePath } from "../taffy/eq";
-import { useIsMobile } from "../hooks/useIsMobile";
 
 const EQ_FREQ_MIN = 30, EQ_FREQ_MAX = 18000;
 import { buildWobbleSVG, wobblePath, hexMix, type WobbleOpts } from "../taffy/wobble";
@@ -46,9 +45,6 @@ const INK = "#2a241d";
 type ChanState = { mute: boolean; solo: boolean };
 
 export default function TaffyDemo({ onClose }: { onClose: () => void }) {
-  // On phones/tablets the fixed-viewport console is taller than the screen, so
-  // it scrolls vertically instead of clipping the Auto Mix button off the bottom.
-  const isMobile = useIsMobile();
   const engineRef = useRef<TaffyEngine | null>(null);
   const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
   const [progress, setProgress] = useState(0);
@@ -441,9 +437,7 @@ export default function TaffyDemo({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className={`taffy taffy-root relative flex h-full w-full flex-col ${
-        isMobile ? "scroll-thin overflow-y-auto overflow-x-hidden" : "overflow-hidden"
-      }`}
+      className="taffy taffy-root relative flex h-full w-full flex-col overflow-hidden"
     >
       {/* inline filter so it wins over the .taffy-sky CSS filter; drains color when off */}
       <div
@@ -494,7 +488,7 @@ export default function TaffyDemo({ onClose }: { onClose: () => void }) {
       )}
 
       {/* console: strips at the top, the story + buttons fill the space below */}
-      <div className={`relative z-[1] flex flex-col ${isMobile ? "" : "flex-1 overflow-hidden"}`}>
+      <div className="relative z-[1] flex flex-1 flex-col overflow-hidden">
         {phase === "loading" && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
             <div className="taffy-ink text-[24px] font-bold text-[#2a241d]/70">warming up the kit…</div>
