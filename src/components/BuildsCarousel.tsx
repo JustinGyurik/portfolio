@@ -285,22 +285,46 @@ function DemoHost({ build, onClose }: { build: Build; onClose: () => void }) {
         {build.demo === "taffy" &&
           (taffyMobile ? (
             <>
+              {/* The console runs in landscape (it is a wide mixing desk). It is
+                  mounted in both orientations so it preloads behind the prompt and
+                  is ready the instant the phone is turned sideways. */}
               <ScaleToFit w={1560} h={1400}>
                 <TaffyDemo onClose={onClose} />
               </ScaleToFit>
-              {/* always-tappable controls that live OUTSIDE the scaled console */}
+              {/* Portrait: cover everything with a rotate prompt. landscape:hidden
+                  reveals the (already-loaded) console once the phone is sideways. */}
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-6 bg-ink px-10 text-center landscape:hidden">
+                <svg
+                  viewBox="0 0 64 64"
+                  className="h-20 w-20 animate-pulse text-clay"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="13" y="23" width="38" height="24" rx="4" />
+                  <line x1="44" y1="29" x2="44" y2="41" />
+                  <path d="M24 12a18 18 0 0 1 19 3" />
+                  <path d="M24 12l-3-5 6-1" />
+                </svg>
+                <div className="font-display text-2xl font-semibold tracking-tight text-paper">
+                  Rotate your phone
+                </div>
+                <p className="max-w-xs text-sm leading-relaxed text-muted">
+                  Taffy is a full mixing console, built for a wide screen. Turn your
+                  phone sideways to run it.
+                </p>
+              </div>
+              {/* always-tappable exit, above both the console and the prompt */}
               <button
                 onClick={onClose}
                 aria-label="Close demo"
-                className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-line bg-ink/70 text-lg text-paper backdrop-blur transition active:scale-95"
+                className="absolute right-3 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-line bg-ink/70 text-lg text-paper backdrop-blur transition active:scale-95"
               >
                 ✕
               </button>
-              <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center landscape:hidden">
-                <span className="rounded-full border border-line bg-ink/70 px-3.5 py-1.5 font-sans text-[12px] uppercase tracking-wide text-muted backdrop-blur">
-                  Rotate your phone for a bigger view
-                </span>
-              </div>
             </>
           ) : (
             <TaffyDemo onClose={onClose} />
