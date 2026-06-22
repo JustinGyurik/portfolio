@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { Component, lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { BUILDS, type Build } from "../content/justin";
 import { useIsMobile } from "../hooks/useIsMobile";
@@ -268,10 +268,13 @@ export default function BuildsCarousel() {
 // become the containing block for `position: fixed` and break full-screen).
 function DemoHost({ build, onClose }: { build: Build; onClose: () => void }) {
   const isMobile = useIsMobile();
-  // Taffy is a dense, fixed-size mixer whose faders/EQ all capture touch, so it
-  // can neither be scrolled nor reflowed cleanly on a phone. Instead the whole
-  // console is scaled to fit the screen: everything visible and tappable at once,
-  // no scrolling. (Best in landscape; a hint nudges portrait users to rotate.)
+  const portrait = useIsPortrait();
+  // Taffy is a dense, fixed-size mixing desk: its faders/EQ capture touch (so it
+  // cannot be scrolled) and it is far too wide for a phone. On mobile it runs in
+  // LANDSCAPE, fit to the screen. In PORTRAIT we render ONLY a rotate prompt and
+  // do not mount the console at all -- mounting the heavy (blurred) console and
+  // scaling it can blank the whole overlay on iOS WebKit, so it is kept out of the
+  // tree until the phone is landscape. An error boundary guards the rest.
   const taffyMobile = isMobile && build.demo === "taffy";
   return createPortal(
     <div className="fixed inset-0 z-[60] bg-ink" role="dialog" aria-modal="true" aria-label={`${build.name} demo`}>
@@ -284,48 +287,22 @@ function DemoHost({ build, onClose }: { build: Build; onClose: () => void }) {
       >
         {build.demo === "taffy" &&
           (taffyMobile ? (
-            <>
-              {/* The console runs in landscape (it is a wide mixing desk). It is
-                  mounted in both orientations so it preloads behind the prompt and
-                  is ready the instant the phone is turned sideways. */}
-              <ScaleToFit w={1560} h={1400}>
-                <TaffyDemo onClose={onClose} />
-              </ScaleToFit>
-              {/* Portrait: cover everything with a rotate prompt. landscape:hidden
-                  reveals the (already-loaded) console once the phone is sideways. */}
-              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-6 bg-ink px-10 text-center landscape:hidden">
-                <svg
-                  viewBox="0 0 64 64"
-                  className="h-20 w-20 animate-pulse text-clay"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
+            portrait ? (
+              <RotatePrompt onClose={onClose} />
+            ) : (
+              <DemoErrorBoundary onClose={onClose}>
+                <ScaleToFit w={1560} h={1400}>
+                  <TaffyDemo onClose={onClose} />
+                </ScaleToFit>
+                <button
+                  onClick={onClose}
+                  aria-label="Close demo"
+                  className="absolute right-3 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-line bg-ink/70 text-lg text-paper backdrop-blur transition active:scale-95"
                 >
-                  <rect x="13" y="23" width="38" height="24" rx="4" />
-                  <line x1="44" y1="29" x2="44" y2="41" />
-                  <path d="M24 12a18 18 0 0 1 19 3" />
-                  <path d="M24 12l-3-5 6-1" />
-                </svg>
-                <div className="font-display text-2xl font-semibold tracking-tight text-paper">
-                  Rotate your phone
-                </div>
-                <p className="max-w-xs text-sm leading-relaxed text-muted">
-                  Taffy is a full mixing console, built for a wide screen. Turn your
-                  phone sideways to run it.
-                </p>
-              </div>
-              {/* always-tappable exit, above both the console and the prompt */}
-              <button
-                onClick={onClose}
-                aria-label="Close demo"
-                className="absolute right-3 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-line bg-ink/70 text-lg text-paper backdrop-blur transition active:scale-95"
-              >
-                ✕
-              </button>
-            </>
+                  ✕
+                </button>
+              </DemoErrorBoundary>
+            )
           ) : (
             <TaffyDemo onClose={onClose} />
           ))}
@@ -336,10 +313,95 @@ function DemoHost({ build, onClose }: { build: Build; onClose: () => void }) {
   );
 }
 
-// Scales a fixed-size child down to fit the viewport (used for the Taffy console
-// on phones). Recomputes on resize/orientation change. The child renders at its
-// natural `w`x`h` and is transform-scaled, so all internal layout and pointer
-// math stay intact (the browser maps touches through the transform).
+// Portrait-only rotate prompt. Self-contained, dead-simple markup (no console, no
+// blur, no scaling), so it always renders even where the live console cannot.
+function RotatePrompt({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-ink px-10 text-center">
+      <svg
+        viewBox="0 0 64 64"
+        className="h-20 w-20 animate-pulse text-clay"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <rect x="13" y="23" width="38" height="24" rx="4" />
+        <line x1="44" y1="29" x2="44" y2="41" />
+        <path d="M24 12a18 18 0 0 1 19 3" />
+        <path d="M24 12l-3-5 6-1" />
+      </svg>
+      <div className="font-display text-2xl font-semibold tracking-tight text-paper">Rotate your phone</div>
+      <p className="max-w-xs text-sm leading-relaxed text-muted">
+        Taffy is a full mixing console, built for a wide screen. Turn your phone sideways to run it.
+      </p>
+      <button
+        onClick={onClose}
+        aria-label="Close demo"
+        className="mt-1 rounded-full border border-line bg-ink/60 px-5 py-2 font-sans text-[13px] uppercase tracking-wide text-paper transition active:scale-95"
+      >
+        Close
+      </button>
+    </div>
+  );
+}
+
+// True while the viewport is taller than it is wide. Dimension-based (not the
+// orientation media query) and driven by `resize` so it updates reliably on real
+// rotation across browsers.
+function useIsPortrait() {
+  const get = () => (typeof window === "undefined" ? true : window.innerHeight >= window.innerWidth);
+  const [p, setP] = useState(get);
+  useEffect(() => {
+    const apply = () => setP(window.innerHeight >= window.innerWidth);
+    apply();
+    window.addEventListener("resize", apply);
+    window.addEventListener("orientationchange", apply);
+    return () => {
+      window.removeEventListener("resize", apply);
+      window.removeEventListener("orientationchange", apply);
+    };
+  }, []);
+  return p;
+}
+
+// Catches any render-time crash in a demo (e.g. an audio/canvas API a mobile
+// browser does not support) and shows a graceful message instead of a blank screen.
+class DemoErrorBoundary extends Component<{ onClose: () => void; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch(err: unknown) {
+    console.error("demo_error_boundary", err);
+  }
+  render() {
+    if (this.state.failed) {
+      return (
+        <div className="flex h-full w-full flex-col items-center justify-center gap-4 px-8 text-center">
+          <div className="font-display text-xl text-paper">This demo couldn't run on your device</div>
+          <p className="max-w-xs text-sm leading-relaxed text-muted">
+            The live mixer is heavy for mobile browsers. It runs great on a desktop browser.
+          </p>
+          <button
+            onClick={this.props.onClose}
+            className="mt-1 rounded-full border border-line bg-ink/60 px-5 py-2 font-sans text-[13px] uppercase tracking-wide text-paper"
+          >
+            Close
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// Shrinks a fixed-size child to fit the viewport (the Taffy console on phones).
+// Uses CSS `zoom` rather than `transform: scale` on purpose: `zoom` reflows the
+// console to the smaller size, whereas a scaled transform composites one huge
+// blurred layer that iOS WebKit can fail to paint (blank). Recomputes on rotate.
 function ScaleToFit({ w, h, children }: { w: number; h: number; children: ReactNode }) {
   const [scale, setScale] = useState(() =>
     typeof window === "undefined" ? 0.3 : Math.min(window.innerWidth / w, window.innerHeight / h)
@@ -356,17 +418,7 @@ function ScaleToFit({ w, h, children }: { w: number; h: number; children: ReactN
   }, [w, h]);
   return (
     <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
-      <div
-        style={{
-          width: w,
-          height: h,
-          flexShrink: 0,
-          transform: `scale(${scale})`,
-          transformOrigin: "center center",
-        }}
-      >
-        {children}
-      </div>
+      <div style={{ width: w, height: h, zoom: scale }}>{children}</div>
     </div>
   );
 }
