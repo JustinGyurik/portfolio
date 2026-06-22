@@ -1,10 +1,13 @@
 import { useContext } from "react";
 import Waveform from "./Waveform";
 import Chat from "./Chat";
+import MobileChat from "./MobileChat";
+import { useIsMobile } from "../hooks/useIsMobile";
 import { DeckContext } from "../deck";
 
 export default function Hero() {
   const { go } = useContext(DeckContext);
+  const isMobile = useIsMobile();
   return (
     <header
       id="ask"
@@ -33,15 +36,17 @@ export default function Hero() {
         </p>
 
         <div className="mt-9 w-full">
-          <Chat />
+          {isMobile ? <MobileChat /> : <Chat />}
         </div>
 
-        <button
-          onClick={() => go(1)}
-          className="mt-8 inline-flex items-center gap-2 rounded font-sans text-[13px] tracking-widest text-faint transition hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay"
-        >
-          OR SEE THE WORK <span aria-hidden="true">→</span>
-        </button>
+        {!isMobile && (
+          <button
+            onClick={() => go(1)}
+            className="mt-8 inline-flex items-center gap-2 rounded font-sans text-[13px] tracking-widest text-faint transition hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+          >
+            OR SEE THE WORK <span aria-hidden="true">→</span>
+          </button>
+        )}
       </div>
     </header>
   );

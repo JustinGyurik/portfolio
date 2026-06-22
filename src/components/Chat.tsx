@@ -14,7 +14,7 @@ const GREETINGS: Record<Mode, string> = {
 // The conversation widget and the centerpiece of the hero. Two modes: an
 // assistant that answers ABOUT Justin (third person), or an interview simulator
 // that answers AS Justin (first person). Grounded in a server-side KB.
-export default function Chat() {
+export default function Chat({ fullscreen = false }: { fullscreen?: boolean } = {}) {
   const [mode, setMode] = useState<Mode>("portfolio");
   const [messages, setMessages] = useState<Msg[]>([{ role: "assistant", content: GREETINGS.portfolio }]);
   const [input, setInput] = useState("");
@@ -97,8 +97,14 @@ export default function Chat() {
   const suggestions = mode === "interview" ? INTERVIEW_QUESTIONS : SUGGESTED_QUESTIONS;
 
   return (
-    <div className="w-full">
-      <div className="iris-ring overflow-hidden rounded-3xl border border-line bg-panel/70 shadow-[0_40px_100px_-30px_rgba(124,92,255,0.5)] backdrop-blur">
+    <div className={fullscreen ? "flex h-full w-full flex-col" : "w-full"}>
+      <div
+        className={
+          fullscreen
+            ? "flex min-h-0 flex-1 flex-col overflow-hidden"
+            : "iris-ring overflow-hidden rounded-3xl border border-line bg-panel/70 shadow-[0_40px_100px_-30px_rgba(124,92,255,0.5)] backdrop-blur"
+        }
+      >
         {/* header: window dots (desktop) + mode toggle. On mobile the dots are
             dropped so the toggle spans full width as two equal halves. */}
         <div className="flex items-center gap-3 border-b border-line/80 px-4 py-3 sm:px-5 sm:py-3.5">
@@ -134,7 +140,9 @@ export default function Chat() {
           role="log"
           aria-live="polite"
           aria-label="Conversation with Justin's assistant"
-          className="scroll-thin max-h-[48vh] min-h-[240px] space-y-5 overflow-y-auto px-5 py-6 text-left sm:min-h-[300px] sm:px-6 sm:py-7"
+          className={`scroll-thin space-y-5 overflow-y-auto px-5 py-6 text-left sm:px-6 sm:py-7 ${
+            fullscreen ? "min-h-0 flex-1" : "max-h-[48vh] min-h-[240px] sm:min-h-[300px]"
+          }`}
         >
           {messages.map((m, i) => (
             <div key={i} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
@@ -201,7 +209,7 @@ export default function Chat() {
           </button>
         </form>
       </div>
-      <p className="mt-3 text-center text-[14px] text-faint">
+      <p className={`text-center text-[14px] text-faint ${fullscreen ? "px-4 pb-3 pt-2" : "mt-3"}`}>
         Answers are AI-generated and may simplify. For anything that matters, email justingyurik@gmail.com.
       </p>
     </div>

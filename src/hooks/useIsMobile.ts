@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 
-// Phone-width viewports get a separate layout: a native vertical-scroll page
-// instead of the desktop horizontal slide-deck. 767px = just below Tailwind's
-// `md`, so tablets and up keep the deck. Initialized synchronously so the right
-// layout renders on the first paint (no desktop->mobile flash).
-const QUERY = "(max-width: 767px)";
+// Phone AND tablet/medium viewports get the responsive vertical layout instead
+// of the desktop horizontal slide-deck. The deck is mouse-first (hover, precise
+// drag, the 3D carousel), so anything below a real desktop (<1024px: phones,
+// tablets, split-screen, medium windows) gets the touch-friendly layout.
+// Initialized synchronously so the right layout renders on first paint (no flash).
+const QUERY = "(max-width: 1023px)";
 
 export function useIsMobile() {
   const [isMobile, setIsMobile] = useState(

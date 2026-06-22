@@ -356,13 +356,13 @@ function ZoomPanel({
             <span className="text-faint">{b.no} / studio</span>
             <span className="text-clay">{b.status}</span>
           </div>
-          <h3 className="mt-2 font-display text-3xl font-semibold tracking-tight text-paper">
+          <h3 className="mt-2 break-words font-display text-2xl font-semibold tracking-tight text-paper sm:text-3xl">
             {b.name}
           </h3>
-          <div className="mt-1 font-sans text-xs uppercase tracking-wider text-clay/80">
+          <div className="mt-1 break-words font-sans text-xs uppercase tracking-wider text-clay/80">
             {b.kind}
           </div>
-          <p className="mt-4 max-w-2xl leading-relaxed text-paper/90">{b.detail}</p>
+          <p className="mt-4 max-w-2xl break-words leading-relaxed text-paper/90">{b.detail}</p>
           <div className="mt-5 flex flex-wrap gap-2">
             {b.stack.map((s) => (
               <span
