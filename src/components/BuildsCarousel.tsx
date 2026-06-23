@@ -288,6 +288,9 @@ function DemoHost({ build, onClose }: { build: Build; onClose: () => void }) {
       aria-modal="true"
       aria-label={`${build.name} demo`}
     >
+      {/* Mobile-landscape Taffy: one rotating sky fills the WHOLE screen, behind the
+          (transparent) scaled console, so the colorful background reaches the edges. */}
+      {taffyLandscape && <div className="taffy-sky" aria-hidden="true" />}
       <Suspense
         fallback={
           <div className="flex h-full w-full items-center justify-center font-sans text-xs uppercase tracking-widest text-faint">
@@ -301,7 +304,7 @@ function DemoHost({ build, onClose }: { build: Build; onClose: () => void }) {
               <RotatePrompt onClose={onClose} />
             ) : (
               <DemoErrorBoundary onClose={onClose}>
-                <ScaleToFit w={2448} h={1215}>
+                <ScaleToFit w={2520} h={1215}>
                   <TaffyDemo onClose={onClose} compact />
                 </ScaleToFit>
                 <button
@@ -427,7 +430,7 @@ function ScaleToFit({ w, h, children }: { w: number; h: number; children: ReactN
     };
   }, [w, h]);
   return (
-    <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+    <div className="absolute inset-0 z-10 flex items-center justify-center overflow-hidden">
       <div style={{ width: w, height: h, zoom: scale }}>{children}</div>
     </div>
   );

@@ -438,13 +438,18 @@ export default function TaffyDemo({ onClose, compact = false }: { onClose: () =>
   return (
     <div
       className="taffy taffy-root relative flex h-full w-full flex-col overflow-hidden"
+      style={compact ? { background: "transparent" } : undefined}
     >
-      {/* inline filter so it wins over the .taffy-sky CSS filter; drains color when off */}
-      <div
-        className="taffy-sky transition-[filter] duration-700"
-        style={{ filter: mixed ? "blur(26px) saturate(1.4)" : "blur(26px) grayscale(1)" }}
-        aria-hidden="true"
-      />
+      {/* inline filter so it wins over the .taffy-sky CSS filter; drains color when off.
+          On mobile (compact) the rotating sky is rendered full-screen BEHIND the scaled
+          console instead, so it fills the whole viewport rather than shrinking with it. */}
+      {!compact && (
+        <div
+          className="taffy-sky transition-[filter] duration-700"
+          style={{ filter: mixed ? "blur(26px) saturate(1.4)" : "blur(26px) grayscale(1)" }}
+          aria-hidden="true"
+        />
+      )}
 
       {/* header: big Taffy wordmark + the two transport buttons */}
       <header className="relative z-[1] flex flex-wrap items-center justify-between gap-x-5 gap-y-2 px-5 pb-1 pt-4 sm:px-7">
@@ -571,7 +576,7 @@ export default function TaffyDemo({ onClose, compact = false }: { onClose: () =>
               NOT desaturated, so Auto Mix keeps its color when Taffy is off */}
           <div className={`flex flex-1 flex-col items-center justify-center px-8 ${compact ? "pb-4 pt-3" : "pb-8"}`}>
             {/* block is centered on screen; the text inside is left-aligned */}
-            <div className="flex w-full max-w-[1000px] flex-col items-start gap-8 text-left">
+            <div className={`flex w-full max-w-[1000px] flex-col gap-8 text-left ${compact ? "items-center" : "items-start"}`}>
             {/* the story copy is dropped on mobile (compact) to save vertical space */}
             {!compact && (
             <p className="taffy-ink text-[32px] font-bold leading-snug text-[#2a241d]/85 sm:text-[38px]" style={{ WebkitTextStroke: "0.4px #2a241d" }}>
