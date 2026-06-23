@@ -301,7 +301,7 @@ function DemoHost({ build, onClose }: { build: Build; onClose: () => void }) {
               <RotatePrompt onClose={onClose} />
             ) : (
               <DemoErrorBoundary onClose={onClose}>
-                <ScaleToFit w={1540} h={1120}>
+                <ScaleToFit w={2448} h={1215}>
                   <TaffyDemo onClose={onClose} compact />
                 </ScaleToFit>
                 <button

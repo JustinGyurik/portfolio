@@ -504,7 +504,7 @@ export default function TaffyDemo({ onClose, compact = false }: { onClose: () =>
         )}
         {phase === "ready" && (
           <>
-          <div className={`scroll-thin flex shrink-0 items-start overflow-x-auto px-3 pt-[50px] sm:px-6 ${desat}`}>
+          <div className={`scroll-thin flex shrink-0 items-start px-3 sm:px-6 ${compact ? "overflow-x-hidden pt-[24px]" : "overflow-x-auto pt-[50px]"} ${desat}`}>
             <div
               ref={rackRef}
               className={`mx-auto flex w-fit items-stretch gap-2.5 pb-2 transition-opacity duration-700 sm:gap-3 ${
@@ -542,6 +542,7 @@ export default function TaffyDemo({ onClose, compact = false }: { onClose: () =>
                     onPan={(p) => setPan(t.id, p)}
                     onMute={() => toggle(t.id, "mute")}
                     onSolo={() => toggle(t.id, "solo")}
+                    compact={compact}
                   />
                 );
               })}
@@ -561,6 +562,7 @@ export default function TaffyDemo({ onClose, compact = false }: { onClose: () =>
                 peakLRef={(el) => (peakRefs.current["bus-l"] = el)}
                 peakRRef={(el) => (peakRefs.current["bus-r"] = el)}
                 onFader={(db) => setFader("bus", db)}
+                compact={compact}
               />
             </div>
           </div>
@@ -589,8 +591,8 @@ export default function TaffyDemo({ onClose, compact = false }: { onClose: () =>
                 }`}
               >
                 <WobbleBox seed={42} fill="busfill" stroke="rainbow" sw={5} amp={3} shadow>
-                  <div className="flex items-center justify-center gap-3 px-12 py-4 text-[40px] font-bold leading-none">
-                    <span aria-hidden="true" className="text-[30px]">✦</span>
+                  <div className={`flex items-center justify-center gap-3 font-bold leading-none ${compact ? "px-16 py-6 text-[56px]" : "px-12 py-4 text-[40px]"}`}>
+                    <span aria-hidden="true" className={compact ? "text-[42px]" : "text-[30px]"}>✦</span>
                     Auto Mix
                   </div>
                 </WobbleBox>
@@ -604,7 +606,7 @@ export default function TaffyDemo({ onClose, compact = false }: { onClose: () =>
                 className={`taffy-ink relative transition active:translate-y-[2px] disabled:opacity-40 focus-visible:outline-none ${desat}`}
               >
                 <WobbleBox seed={43} fill="#fffdf7" stroke={INK} sw={3.5} amp={2.4} shadow>
-                  <div className="flex items-center justify-center px-9 py-4 text-[30px] font-bold leading-none text-[#2a241d]/70">
+                  <div className={`flex items-center justify-center font-bold leading-none text-[#2a241d]/70 ${compact ? "px-14 py-6 text-[44px]" : "px-9 py-4 text-[30px]"}`}>
                     Taffy Off
                   </div>
                 </WobbleBox>
@@ -772,6 +774,7 @@ function Strip(props: {
   onPan: (p: number) => void;
   onMute: () => void;
   onSolo: () => void;
+  compact?: boolean;
 }) {
   const { db, color, pan, muted, soloed, dimmed } = props;
   const fill = `g:${hexMix(color, "#ffffff", 0.8)}:${hexMix(color, "#ffffff", 0.95)}`;
@@ -784,7 +787,7 @@ function Strip(props: {
       amp={2.4}
       shadow
       alpha={0.9}
-      className={`w-[126px] shrink-0 transition-opacity sm:w-[140px] ${dimmed ? "opacity-40" : "opacity-100"}`}
+      className={`${props.compact ? "w-[232px]" : "w-[126px] sm:w-[140px]"} shrink-0 transition-opacity ${dimmed ? "opacity-40" : "opacity-100"}`}
     >
       <div className="flex flex-col items-center px-3 pb-3.5 pt-3">
         <div className="taffy-ink truncate text-[29px] font-bold leading-none" style={{ color }}>
@@ -811,7 +814,7 @@ function Strip(props: {
         <VuDial color={color} seed={props.seed} needleRef={props.needleRef} grRef={props.grRef} compOn={props.compOn} onClick={props.onOpenComp} />
         <PanSlider value={pan} onChange={props.onPan} color={color} />
 
-        <div className="mt-2.5 flex h-[225px] items-stretch justify-center gap-3">
+        <div className={`mt-2.5 flex items-stretch justify-center gap-3 ${props.compact ? "h-[340px]" : "h-[225px]"}`}>
           <Fader db={db} onChange={props.onFader} label={props.label} color={color} />
           <MeterBar meterRef={props.meterRef} peakRef={props.peakRef} />
         </div>
@@ -842,11 +845,12 @@ function BusStrip(props: {
   peakLRef: (el: HTMLDivElement | null) => void;
   peakRRef: (el: HTMLDivElement | null) => void;
   onFader: (db: number) => void;
+  compact?: boolean;
 }) {
   const { db } = props;
   const RB = "linear-gradient(95deg,#e63946,#ff6b35,#e0a000,#0a9b6c,#3a86ff,#8338ec)";
   return (
-    <WobbleBox seed={9001} fill="busfill" stroke="rainbow" sw={3.5} amp={2.4} shadow alpha={0.85} className="w-[144px] shrink-0 sm:w-[158px]">
+    <WobbleBox seed={9001} fill="busfill" stroke="rainbow" sw={3.5} amp={2.4} shadow alpha={0.85} className={`${props.compact ? "w-[252px]" : "w-[144px] sm:w-[158px]"} shrink-0`}>
       <div className="flex flex-col items-center px-3 pb-3.5 pt-3">
         <div
           className="taffy-ink text-[29px] font-bold leading-none"
@@ -861,7 +865,7 @@ function BusStrip(props: {
         {/* spacer where the channels' pan slider is, to keep the faders aligned */}
         <div className="mt-2 h-[17px]" />
 
-        <div className="mt-2.5 flex h-[225px] items-stretch justify-center gap-2.5">
+        <div className={`mt-2.5 flex items-stretch justify-center gap-2.5 ${props.compact ? "h-[340px]" : "h-[225px]"}`}>
           <Fader db={db} onChange={props.onFader} label="Bus master" color="#8338ec" capFill={RB} />
           <MeterBar meterRef={props.meterLRef} peakRef={props.peakLRef} />
           <MeterBar meterRef={props.meterRRef} peakRef={props.peakRRef} />
