@@ -44,7 +44,7 @@ const INK = "#2a241d";
 
 type ChanState = { mute: boolean; solo: boolean };
 
-export default function TaffyDemo({ onClose }: { onClose: () => void }) {
+export default function TaffyDemo({ onClose, compact = false }: { onClose: () => void; compact?: boolean }) {
   const engineRef = useRef<TaffyEngine | null>(null);
   const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
   const [progress, setProgress] = useState(0);
@@ -567,12 +567,15 @@ export default function TaffyDemo({ onClose }: { onClose: () => void }) {
 
           {/* the story + buttons fill the space below the strips; this block is
               NOT desaturated, so Auto Mix keeps its color when Taffy is off */}
-          <div className="flex flex-1 flex-col items-center justify-center px-8 pb-8">
+          <div className={`flex flex-1 flex-col items-center justify-center px-8 ${compact ? "pb-4 pt-3" : "pb-8"}`}>
             {/* block is centered on screen; the text inside is left-aligned */}
             <div className="flex w-full max-w-[1000px] flex-col items-start gap-8 text-left">
+            {/* the story copy is dropped on mobile (compact) to save vertical space */}
+            {!compact && (
             <p className="taffy-ink text-[32px] font-bold leading-snug text-[#2a241d]/85 sm:text-[38px]" style={{ WebkitTextStroke: "0.4px #2a241d" }}>
               Those nine channels are the raw, unmixed drum mics, straight off the kit. Hit Auto Mix and watch Taffy identify every mic, pull the bleed, shape each drum, and glue the whole thing into a finished mix. Then dig in yourself: click any channel and push the faders, EQ, and compression wherever you want.
             </p>
+            )}
             <div className="flex flex-wrap items-center gap-6">
               {/* Auto Mix: the ONE thing that keeps its color when Taffy is off */}
               <button

@@ -276,8 +276,18 @@ function DemoHost({ build, onClose }: { build: Build; onClose: () => void }) {
   // scaling it can blank the whole overlay on iOS WebKit, so it is kept out of the
   // tree until the phone is landscape. An error boundary guards the rest.
   const taffyMobile = isMobile && build.demo === "taffy";
+  // In landscape, Taffy is fit to the screen height and centered; fill the side
+  // margins with Taffy's own paper color (not black) so it reads as the console
+  // on a full sheet of paper rather than a small square in a void.
+  const taffyLandscape = taffyMobile && !portrait;
   return createPortal(
-    <div className="fixed inset-0 z-[60] bg-ink" role="dialog" aria-modal="true" aria-label={`${build.name} demo`}>
+    <div
+      className="fixed inset-0 z-[60] bg-ink"
+      style={taffyLandscape ? { background: "#fdf3e3" } : undefined}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${build.name} demo`}
+    >
       <Suspense
         fallback={
           <div className="flex h-full w-full items-center justify-center font-sans text-xs uppercase tracking-widest text-faint">
@@ -291,8 +301,8 @@ function DemoHost({ build, onClose }: { build: Build; onClose: () => void }) {
               <RotatePrompt onClose={onClose} />
             ) : (
               <DemoErrorBoundary onClose={onClose}>
-                <ScaleToFit w={1560} h={1400}>
-                  <TaffyDemo onClose={onClose} />
+                <ScaleToFit w={1540} h={1120}>
+                  <TaffyDemo onClose={onClose} compact />
                 </ScaleToFit>
                 <button
                   onClick={onClose}
