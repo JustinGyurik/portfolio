@@ -269,6 +269,7 @@ export default function BuildsCarousel() {
 function DemoHost({ build, onClose }: { build: Build; onClose: () => void }) {
   const isMobile = useIsMobile();
   const portrait = useIsPortrait();
+  const [taffyMixed, setTaffyMixed] = useState(false); // drives the full-screen sky color
   // Taffy is a dense, fixed-size mixing desk: its faders/EQ capture touch (so it
   // cannot be scrolled) and it is far too wide for a phone. On mobile it runs in
   // LANDSCAPE, fit to the screen. In PORTRAIT we render ONLY a rotate prompt and
@@ -289,8 +290,15 @@ function DemoHost({ build, onClose }: { build: Build; onClose: () => void }) {
       aria-label={`${build.name} demo`}
     >
       {/* Mobile-landscape Taffy: one rotating sky fills the WHOLE screen, behind the
-          (transparent) scaled console, so the colorful background reaches the edges. */}
-      {taffyLandscape && <div className="taffy-sky" aria-hidden="true" />}
+          (transparent) scaled console, so the colorful background reaches the edges.
+          It stays grayscale until Auto Mix, then blooms to color in sync. */}
+      {taffyLandscape && (
+        <div
+          className="taffy-sky transition-[filter] duration-700"
+          style={{ filter: taffyMixed ? "blur(26px) saturate(1.4)" : "blur(26px) grayscale(1)" }}
+          aria-hidden="true"
+        />
+      )}
       <Suspense
         fallback={
           <div className="flex h-full w-full items-center justify-center font-sans text-xs uppercase tracking-widest text-faint">
@@ -305,7 +313,7 @@ function DemoHost({ build, onClose }: { build: Build; onClose: () => void }) {
             ) : (
               <DemoErrorBoundary onClose={onClose}>
                 <ScaleToFit w={2520} h={1215}>
-                  <TaffyDemo onClose={onClose} compact />
+                  <TaffyDemo onClose={onClose} compact onMixedChange={setTaffyMixed} />
                 </ScaleToFit>
                 <button
                   onClick={onClose}

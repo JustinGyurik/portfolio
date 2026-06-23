@@ -44,7 +44,15 @@ const INK = "#2a241d";
 
 type ChanState = { mute: boolean; solo: boolean };
 
-export default function TaffyDemo({ onClose, compact = false }: { onClose: () => void; compact?: boolean }) {
+export default function TaffyDemo({
+  onClose,
+  compact = false,
+  onMixedChange,
+}: {
+  onClose: () => void;
+  compact?: boolean;
+  onMixedChange?: (mixed: boolean) => void;
+}) {
   const engineRef = useRef<TaffyEngine | null>(null);
   const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
   const [progress, setProgress] = useState(0);
@@ -142,6 +150,12 @@ export default function TaffyDemo({ onClose, compact = false }: { onClose: () =>
       engine.dispose();
     };
   }, []);
+
+  // Report mix state up so a parent (the mobile full-screen sky) can drain/bloom
+  // color in sync with the console.
+  useEffect(() => {
+    onMixedChange?.(mixed);
+  }, [mixed, onMixedChange]);
 
   // ---- per-frame meter + needle loop ----------------------------------------
   useEffect(() => {

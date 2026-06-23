@@ -11,6 +11,12 @@ body {
   height: 100%;
   /* The deck owns layout; only individual slides scroll vertically. */
   overflow: hidden;
+  /* Stop iOS Safari from auto-inflating text when a layout is scaled down (e.g.
+     the Taffy console's CSS `zoom` on mobile). Without this, iOS keeps text at
+     its "readable" size, so labels spill off the faders and the layout no longer
+     fits. Desktop/Chromium never inflate, which is why the preview looked right. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
