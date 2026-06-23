@@ -473,14 +473,14 @@ export default function TaffyDemo({
       >
         <div className={`flex items-baseline gap-3 ${desat}`}>
           <span
-            className={`taffy-ink font-bold leading-none ${compact ? "text-[4.6vmin]" : "text-[64px] sm:text-[88px]"}`}
-            style={{ color: "#ef476f", WebkitTextStroke: compact ? `0.3vmin ${INK}` : `2.5px ${INK}` }}
+            className={`taffy-ink font-bold leading-none ${compact ? "text-[6.4vmin]" : "text-[64px] sm:text-[88px]"}`}
+            style={{ color: "#ef476f", WebkitTextStroke: compact ? `0.45vmin ${INK}` : `2.5px ${INK}` }}
           >
             Taffy
           </span>
           <span
             className={`taffy-ink font-bold leading-none text-[#2a241d]/55 ${
-              compact ? "text-[2.2vmin]" : "hidden text-[28px] sm:inline"
+              compact ? "text-[3vmin]" : "hidden text-[28px] sm:inline"
             }`}
           >
             drum console
@@ -492,9 +492,11 @@ export default function TaffyDemo({
               demo kit
             </WobbleButton>
           )}
-          <WobbleButton fill="#ffffff" seed={77} onClick={onClose} className={compact ? "text-[2.6vmin]" : "text-[19px]"}>
-            done
-          </WobbleButton>
+          {!compact && (
+            <WobbleButton fill="#ffffff" seed={77} onClick={onClose} className="text-[19px]">
+              done
+            </WobbleButton>
+          )}
         </div>
       </header>
 
@@ -630,7 +632,7 @@ export default function TaffyDemo({
 
           {/* the story + buttons fill the space below the strips; this block is
               NOT desaturated, so Auto Mix keeps its color when Taffy is off */}
-          <div className={`flex flex-col items-center justify-center ${compact ? "flex-none px-[2vmin] pb-[1.4vmin] pt-[1vmin]" : "flex-1 px-8 pb-8"}`}>
+          <div className={`flex flex-col items-center justify-center ${compact ? "flex-none px-[2vmin] pb-[2vmin] pt-[1.2vmin]" : "flex-1 px-8 pb-8"}`}>
             {/* block is centered on screen; the text inside is left-aligned */}
             <div className={`flex w-full max-w-[1000px] flex-col gap-8 text-left ${compact ? "items-center" : "items-start"}`}>
             {/* the story copy is dropped on mobile (compact) to save vertical space */}
@@ -639,7 +641,7 @@ export default function TaffyDemo({
               Those nine channels are the raw, unmixed drum mics, straight off the kit. Hit Auto Mix and watch Taffy identify every mic, pull the bleed, shape each drum, and glue the whole thing into a finished mix. Then dig in yourself: click any channel and push the faders, EQ, and compression wherever you want.
             </p>
             )}
-            <div className={`flex flex-wrap items-center justify-center ${compact ? "gap-[2vmin]" : "gap-6"}`}>
+            <div className={`flex flex-wrap items-center justify-center ${compact ? "gap-[3.5vmin]" : "gap-6"}`}>
               {/* Auto Mix: the ONE thing that keeps its color when Taffy is off */}
               <button
                 id="taffy-automix"
@@ -652,8 +654,8 @@ export default function TaffyDemo({
                 }`}
               >
                 <WobbleBox seed={42} fill="busfill" stroke="rainbow" sw={5} amp={3} shadow>
-                  <div className={`flex items-center justify-center gap-3 font-bold leading-none ${compact ? "px-[3.6vmin] py-[1.5vmin] text-[3.4vmin]" : "px-12 py-4 text-[40px]"}`}>
-                    <span aria-hidden="true" className={compact ? "text-[2.7vmin]" : "text-[30px]"}>✦</span>
+                  <div className={`flex items-center justify-center gap-3 font-bold leading-none ${compact ? "px-[6vmin] py-[3.2vmin] text-[4.6vmin]" : "px-12 py-4 text-[40px]"}`}>
+                    <span aria-hidden="true" className={compact ? "text-[3.6vmin]" : "text-[30px]"}>✦</span>
                     Auto Mix
                   </div>
                 </WobbleBox>
@@ -667,7 +669,7 @@ export default function TaffyDemo({
                 className={`taffy-ink relative transition active:translate-y-[2px] disabled:opacity-40 focus-visible:outline-none ${desat}`}
               >
                 <WobbleBox seed={43} fill="#fffdf7" stroke={INK} sw={3.5} amp={2.4} shadow>
-                  <div className={`flex items-center justify-center font-bold leading-none text-[#2a241d]/70 ${compact ? "px-[3vmin] py-[1.5vmin] text-[2.9vmin]" : "px-9 py-4 text-[30px]"}`}>
+                  <div className={`flex items-center justify-center font-bold leading-none text-[#2a241d]/70 ${compact ? "px-[5.5vmin] py-[3.2vmin] text-[4vmin]" : "px-9 py-4 text-[30px]"}`}>
                     Taffy Off
                   </div>
                 </WobbleBox>
@@ -855,7 +857,7 @@ function MStrip(props: {
       className={`taffy-hand-sm flex min-w-0 flex-1 flex-col items-center bg-[#fffdf7] transition-opacity ${dimmed ? "opacity-40" : ""}`}
       style={{ border: "0.32vmin solid rgba(42,36,29,0.8)", padding: "1vmin 0.5vmin 0.8vmin" }}
     >
-      <div className="taffy-ink w-full truncate text-center font-bold leading-none" style={{ fontSize: "2.1vmin", color }}>
+      <div className="taffy-ink w-full truncate text-center font-bold leading-none" style={{ fontSize: "2.7vmin", color }}>
         {label}
       </div>
       <div className="flex" style={{ gap: "0.6vmin", marginTop: "0.9vmin" }}>
@@ -889,7 +891,7 @@ function MBusStrip(props: {
     >
       <div
         className="taffy-ink font-bold leading-none"
-        style={{ fontSize: "2.1vmin", background: RB, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}
+        style={{ fontSize: "2.7vmin", background: RB, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}
       >
         Bus
       </div>
