@@ -466,15 +466,23 @@ export default function TaffyDemo({
       )}
 
       {/* header: big Taffy wordmark + the two transport buttons */}
-      <header className="relative z-[1] flex flex-wrap items-center justify-between gap-x-5 gap-y-2 px-5 pb-1 pt-4 sm:px-7">
+      <header
+        className={`relative z-[1] flex flex-wrap items-center justify-between ${
+          compact ? "gap-x-[2vmin] gap-y-[0.4vmin] px-[2vmin] pb-[0.3vmin] pt-[1.2vmin]" : "gap-x-5 gap-y-2 px-5 pb-1 pt-4 sm:px-7"
+        }`}
+      >
         <div className={`flex items-baseline gap-3 ${desat}`}>
           <span
-            className="taffy-ink text-[64px] font-bold leading-none sm:text-[88px]"
-            style={{ color: "#ef476f", WebkitTextStroke: `2.5px ${INK}` }}
+            className={`taffy-ink font-bold leading-none ${compact ? "text-[4.6vmin]" : "text-[64px] sm:text-[88px]"}`}
+            style={{ color: "#ef476f", WebkitTextStroke: compact ? `0.3vmin ${INK}` : `2.5px ${INK}` }}
           >
             Taffy
           </span>
-          <span className="taffy-ink hidden text-[28px] font-bold leading-none text-[#2a241d]/55 sm:inline">
+          <span
+            className={`taffy-ink font-bold leading-none text-[#2a241d]/55 ${
+              compact ? "text-[2.2vmin]" : "hidden text-[28px] sm:inline"
+            }`}
+          >
             drum console
           </span>
         </div>
@@ -484,7 +492,7 @@ export default function TaffyDemo({
               demo kit
             </WobbleButton>
           )}
-          <WobbleButton fill="#ffffff" seed={77} onClick={onClose} className="text-[19px]">
+          <WobbleButton fill="#ffffff" seed={77} onClick={onClose} className={compact ? "text-[2.6vmin]" : "text-[19px]"}>
             done
           </WobbleButton>
         </div>
@@ -492,8 +500,8 @@ export default function TaffyDemo({
 
       {/* scrubbable waveform + transport, locked to the channel-strip rack width */}
       {phase === "ready" && (
-        <div className={`relative z-[1] px-5 pb-2 sm:px-7 ${desat}`}>
-          <div className="mx-auto w-full" style={{ maxWidth: rackW || undefined }}>
+        <div className={`relative z-[1] ${compact ? "px-[2vmin] pb-[0.6vmin]" : "px-5 pb-2 sm:px-7"} ${desat}`}>
+          <div className="mx-auto w-full" style={{ maxWidth: compact ? undefined : rackW || undefined }}>
             <WaveformPlayer
               engineRef={engineRef}
               looping={looping}
@@ -501,6 +509,7 @@ export default function TaffyDemo({
               onPause={onPause}
               onStop={onStop}
               onLoop={onLoop}
+              compact={compact}
             />
           </div>
         </div>
@@ -523,7 +532,39 @@ export default function TaffyDemo({
         )}
         {phase === "ready" && (
           <>
-          <div className={`scroll-thin flex shrink-0 items-start px-3 sm:px-6 ${compact ? "overflow-x-hidden pt-[24px]" : "overflow-x-auto pt-[50px]"} ${desat}`}>
+          {compact ? (
+            <div className={`flex w-full flex-1 items-stretch justify-center ${desat}`} style={{ gap: "0.7vmin", padding: "0 1.5vmin", minHeight: 0 }}>
+              {TRACKS.map((t) => {
+                const cs = chan[t.id];
+                const dimmed = anySolo && !cs.solo && !cs.mute;
+                return (
+                  <MStrip
+                    key={t.id}
+                    label={t.label}
+                    color={t.color}
+                    db={mixed ? faders[t.id] : 0}
+                    muted={cs.mute}
+                    soloed={cs.solo}
+                    dimmed={dimmed}
+                    meterRef={(el) => (meterRefs.current[t.id] = el)}
+                    peakRef={(el) => (peakRefs.current[t.id] = el)}
+                    onFader={(db) => setFader(t.id, db)}
+                    onMute={() => toggle(t.id, "mute")}
+                    onSolo={() => toggle(t.id, "solo")}
+                  />
+                );
+              })}
+              <MBusStrip
+                db={mixed ? faders.bus : 0}
+                onFader={(db) => setFader("bus", db)}
+                meterLRef={(el) => (meterRefs.current["bus-l"] = el)}
+                meterRRef={(el) => (meterRefs.current["bus-r"] = el)}
+                peakLRef={(el) => (peakRefs.current["bus-l"] = el)}
+                peakRRef={(el) => (peakRefs.current["bus-r"] = el)}
+              />
+            </div>
+          ) : (
+          <div className={`scroll-thin flex shrink-0 items-start overflow-x-auto px-3 pt-[50px] sm:px-6 ${desat}`}>
             <div
               ref={rackRef}
               className={`mx-auto flex w-fit items-stretch gap-2.5 pb-2 transition-opacity duration-700 sm:gap-3 ${
@@ -585,10 +626,11 @@ export default function TaffyDemo({
               />
             </div>
           </div>
+          )}
 
           {/* the story + buttons fill the space below the strips; this block is
               NOT desaturated, so Auto Mix keeps its color when Taffy is off */}
-          <div className={`flex flex-1 flex-col items-center justify-center px-8 ${compact ? "pb-4 pt-3" : "pb-8"}`}>
+          <div className={`flex flex-col items-center justify-center ${compact ? "flex-none px-[2vmin] pb-[1.4vmin] pt-[1vmin]" : "flex-1 px-8 pb-8"}`}>
             {/* block is centered on screen; the text inside is left-aligned */}
             <div className={`flex w-full max-w-[1000px] flex-col gap-8 text-left ${compact ? "items-center" : "items-start"}`}>
             {/* the story copy is dropped on mobile (compact) to save vertical space */}
@@ -597,7 +639,7 @@ export default function TaffyDemo({
               Those nine channels are the raw, unmixed drum mics, straight off the kit. Hit Auto Mix and watch Taffy identify every mic, pull the bleed, shape each drum, and glue the whole thing into a finished mix. Then dig in yourself: click any channel and push the faders, EQ, and compression wherever you want.
             </p>
             )}
-            <div className="flex flex-wrap items-center gap-6">
+            <div className={`flex flex-wrap items-center justify-center ${compact ? "gap-[2vmin]" : "gap-6"}`}>
               {/* Auto Mix: the ONE thing that keeps its color when Taffy is off */}
               <button
                 id="taffy-automix"
@@ -610,8 +652,8 @@ export default function TaffyDemo({
                 }`}
               >
                 <WobbleBox seed={42} fill="busfill" stroke="rainbow" sw={5} amp={3} shadow>
-                  <div className={`flex items-center justify-center gap-3 font-bold leading-none ${compact ? "px-16 py-6 text-[56px]" : "px-12 py-4 text-[40px]"}`}>
-                    <span aria-hidden="true" className={compact ? "text-[42px]" : "text-[30px]"}>✦</span>
+                  <div className={`flex items-center justify-center gap-3 font-bold leading-none ${compact ? "px-[3.6vmin] py-[1.5vmin] text-[3.4vmin]" : "px-12 py-4 text-[40px]"}`}>
+                    <span aria-hidden="true" className={compact ? "text-[2.7vmin]" : "text-[30px]"}>✦</span>
                     Auto Mix
                   </div>
                 </WobbleBox>
@@ -625,7 +667,7 @@ export default function TaffyDemo({
                 className={`taffy-ink relative transition active:translate-y-[2px] disabled:opacity-40 focus-visible:outline-none ${desat}`}
               >
                 <WobbleBox seed={43} fill="#fffdf7" stroke={INK} sw={3.5} amp={2.4} shadow>
-                  <div className={`flex items-center justify-center font-bold leading-none text-[#2a241d]/70 ${compact ? "px-14 py-6 text-[44px]" : "px-9 py-4 text-[30px]"}`}>
+                  <div className={`flex items-center justify-center font-bold leading-none text-[#2a241d]/70 ${compact ? "px-[3vmin] py-[1.5vmin] text-[2.9vmin]" : "px-9 py-4 text-[30px]"}`}>
                     Taffy Off
                   </div>
                 </WobbleBox>
@@ -766,6 +808,102 @@ function WobbleButton({
 }
 
 // ---- channel strip -----------------------------------------------------------
+
+// ---- native mobile strips ---------------------------------------------------
+// Sized in viewport units (vmin) so the console fits a phone in landscape with NO
+// CSS zoom/transform (which iOS WebKit renders inconsistently — the whole reason
+// the scaled version broke). Drops the per-channel EQ pad / VU dial (desktop
+// detail, unusable at phone size) for a big, touch-friendly fader. Faders/meters
+// are `h-full`, so they grow to fill the column height natively.
+function MmsBtn({ on, kind, label, onClick, activeBg }: { on: boolean; kind: string; label: string; onClick: () => void; activeBg: string }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      aria-pressed={on}
+      className="taffy-ink font-bold leading-none transition active:translate-y-[1px] focus-visible:outline-none"
+      style={{
+        fontSize: "1.8vmin",
+        padding: "0.35vmin 0.75vmin",
+        border: "0.25vmin solid #2a241d",
+        borderRadius: "0.6vmin",
+        background: on ? activeBg : "rgba(255,255,255,0.55)",
+        color: on ? "#fff" : "#2a241d",
+      }}
+    >
+      {kind}
+    </button>
+  );
+}
+
+function MStrip(props: {
+  label: string;
+  color: string;
+  db: number;
+  muted: boolean;
+  soloed: boolean;
+  dimmed: boolean;
+  meterRef: (el: HTMLDivElement | null) => void;
+  peakRef: (el: HTMLDivElement | null) => void;
+  onFader: (db: number) => void;
+  onMute: () => void;
+  onSolo: () => void;
+}) {
+  const { label, color, db, dimmed } = props;
+  return (
+    <div
+      className={`taffy-hand-sm flex min-w-0 flex-1 flex-col items-center bg-[#fffdf7] transition-opacity ${dimmed ? "opacity-40" : ""}`}
+      style={{ border: "0.32vmin solid rgba(42,36,29,0.8)", padding: "1vmin 0.5vmin 0.8vmin" }}
+    >
+      <div className="taffy-ink w-full truncate text-center font-bold leading-none" style={{ fontSize: "2.1vmin", color }}>
+        {label}
+      </div>
+      <div className="flex" style={{ gap: "0.6vmin", marginTop: "0.9vmin" }}>
+        <MmsBtn on={props.muted} kind="M" label={`${label} mute`} onClick={props.onMute} activeBg="#ef476f" />
+        <MmsBtn on={props.soloed} kind="S" label={`${label} solo`} onClick={props.onSolo} activeBg="#f4a52a" />
+      </div>
+      <div className="flex w-full flex-1 items-stretch justify-center" style={{ gap: "0.8vmin", marginTop: "1.1vmin", minHeight: 0 }}>
+        <Fader db={db} onChange={props.onFader} label={label} color={color} />
+        <MeterBar meterRef={props.meterRef} peakRef={props.peakRef} />
+      </div>
+      <div className="taffy-ink tabular-nums leading-none text-[#2a241d]/75" style={{ fontSize: "1.6vmin", marginTop: "0.7vmin" }}>
+        {db <= FADER_MIN ? "-∞" : `${db > 0 ? "+" : ""}${db.toFixed(1)}`} dB
+      </div>
+    </div>
+  );
+}
+
+function MBusStrip(props: {
+  db: number;
+  onFader: (db: number) => void;
+  meterLRef: (el: HTMLDivElement | null) => void;
+  meterRRef: (el: HTMLDivElement | null) => void;
+  peakLRef: (el: HTMLDivElement | null) => void;
+  peakRRef: (el: HTMLDivElement | null) => void;
+}) {
+  const RB = "linear-gradient(95deg,#e63946,#ff6b35,#e0a000,#0a9b6c,#3a86ff,#8338ec)";
+  return (
+    <div
+      className="taffy-hand-sm flex min-w-0 flex-col items-center bg-[#fffdf7]"
+      style={{ border: "0.32vmin solid rgba(42,36,29,0.8)", padding: "1vmin 0.6vmin 0.8vmin", flex: "1.3 1 0" }}
+    >
+      <div
+        className="taffy-ink font-bold leading-none"
+        style={{ fontSize: "2.1vmin", background: RB, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}
+      >
+        Bus
+      </div>
+      <div className="flex w-full flex-1 items-stretch justify-center" style={{ gap: "0.7vmin", marginTop: "1.1vmin", minHeight: 0 }}>
+        <Fader db={props.db} onChange={props.onFader} label="Bus master" color="#8338ec" capFill={RB} />
+        <MeterBar meterRef={props.meterLRef} peakRef={props.peakLRef} />
+        <MeterBar meterRef={props.meterRRef} peakRef={props.peakRRef} />
+      </div>
+      <div className="taffy-ink leading-none text-[#2a241d]/75" style={{ fontSize: "1.6vmin", marginTop: "0.7vmin" }}>
+        {props.db > 0 ? "+" : ""}{props.db.toFixed(1)} dB
+      </div>
+    </div>
+  );
+}
 
 function Strip(props: {
   id: string;
@@ -1313,6 +1451,7 @@ function WaveformPlayer({
   onPause,
   onStop,
   onLoop,
+  compact,
 }: {
   engineRef: React.MutableRefObject<TaffyEngine | null>;
   looping: boolean;
@@ -1320,6 +1459,7 @@ function WaveformPlayer({
   onPause: () => void;
   onStop: () => void;
   onLoop: () => void;
+  compact?: boolean;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const headRef = useRef<SVGLineElement | null>(null);
@@ -1400,7 +1540,7 @@ function WaveformPlayer({
       {/* waveform (clean rectangular frame, no wobble) */}
       <div
         ref={boxRef}
-        className="relative h-[174px] w-full cursor-text touch-none select-none overflow-hidden rounded-[10px] border-[3px] border-[#2a241d]"
+        className={`relative w-full cursor-text touch-none select-none overflow-hidden rounded-[10px] border-[3px] border-[#2a241d] ${compact ? "h-[15vmin]" : "h-[174px]"}`}
         style={{ background: "#fffdf7", boxShadow: "2px 3px 0 rgba(42,36,29,0.18)" }}
         title="Click to scrub · drag to select a loop section · double-click to clear"
         onPointerDown={onDown}
@@ -1430,7 +1570,7 @@ function WaveformPlayer({
       </div>
 
       {/* transport: one consistent set of black icons, same size, no colors */}
-      <div className="mt-3 flex items-center gap-7">
+      <div className={`flex items-center ${compact ? "mt-[1vmin] gap-[3.5vmin]" : "mt-3 gap-7"}`}>
         <button type="button" onClick={onPlay} aria-label="Play"
           className="text-[#2a241d]/75 transition hover:scale-110 hover:text-[#2a241d] active:translate-y-[1px]">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l10.5-6.5z" /></svg>
@@ -1450,7 +1590,7 @@ function WaveformPlayer({
             <path d="M7 22l-4-4 4-4" /><path d="M21 13v1a4 4 0 0 1-4 4H3" />
           </svg>
         </button>
-        <span ref={timeRef} className="taffy-ink ml-auto whitespace-nowrap text-[28px] font-bold tabular-nums leading-none text-[#2a241d]/80">0:00 / 1:00</span>
+        <span ref={timeRef} className={`taffy-ink ml-auto whitespace-nowrap font-bold tabular-nums leading-none text-[#2a241d]/80 ${compact ? "text-[2.4vmin]" : "text-[28px]"}`}>0:00 / 1:00</span>
       </div>
     </div>
   );

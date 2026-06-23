@@ -312,9 +312,11 @@ function DemoHost({ build, onClose }: { build: Build; onClose: () => void }) {
               <RotatePrompt onClose={onClose} />
             ) : (
               <DemoErrorBoundary onClose={onClose}>
-                <ScaleToFit w={2520} h={1215}>
+                {/* Native layout (no scaling): the console is built in viewport units
+                    and fills the screen directly, so iOS renders it like the preview. */}
+                <div className="relative z-10 h-full w-full">
                   <TaffyDemo onClose={onClose} compact onMixedChange={setTaffyMixed} />
-                </ScaleToFit>
+                </div>
                 <button
                   onClick={onClose}
                   aria-label="Close demo"
@@ -419,30 +421,6 @@ class DemoErrorBoundary extends Component<{ onClose: () => void; children: React
   }
 }
 
-// Shrinks a fixed-size child to fit the viewport (the Taffy console on phones).
-// Uses CSS `zoom` rather than `transform: scale` on purpose: `zoom` reflows the
-// console to the smaller size, whereas a scaled transform composites one huge
-// blurred layer that iOS WebKit can fail to paint (blank). Recomputes on rotate.
-function ScaleToFit({ w, h, children }: { w: number; h: number; children: ReactNode }) {
-  const [scale, setScale] = useState(() =>
-    typeof window === "undefined" ? 0.3 : Math.min(window.innerWidth / w, window.innerHeight / h)
-  );
-  useLayoutEffect(() => {
-    const compute = () => setScale(Math.min(window.innerWidth / w, window.innerHeight / h));
-    compute();
-    window.addEventListener("resize", compute);
-    window.addEventListener("orientationchange", compute);
-    return () => {
-      window.removeEventListener("resize", compute);
-      window.removeEventListener("orientationchange", compute);
-    };
-  }, [w, h]);
-  return (
-    <div className="absolute inset-0 z-10 flex items-center justify-center overflow-hidden">
-      <div style={{ width: w, height: h, zoom: scale }}>{children}</div>
-    </div>
-  );
-}
 
 // Image-forward: the screenshot fills the whole card, copy sits over a scrim
 // at the bottom so there is no dark/empty top.
