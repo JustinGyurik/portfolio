@@ -3,6 +3,7 @@ import Hero from "./components/Hero";
 import Builds from "./components/Builds";
 import About from "./components/About";
 import Writing from "./components/Writing";
+import { Analytics } from "@vercel/analytics/react";
 import { useReveal } from "./hooks/useReveal";
 import { useIsMobile } from "./hooks/useIsMobile";
 import { DeckContext } from "./deck";
@@ -20,7 +21,34 @@ const SLIDES = [
 export default function App() {
   useReveal();
   const isMobile = useIsMobile();
-  return isMobile ? <MobileApp /> : <DeckApp />;
+
+  // Privacy-preserving geo ping: one fire-and-forget beacon per visit. The server
+  // logs country/city (Vercel geo headers), never the IP. See api/track.ts.
+  useEffect(() => {
+    try {
+      const body = JSON.stringify({ path: window.location.pathname });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon("/api/track", new Blob([body], { type: "application/json" }));
+      } else {
+        void fetch("/api/track", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body,
+          keepalive: true,
+        });
+      }
+    } catch {
+      /* analytics must never break the page */
+    }
+  }, []);
+
+  return (
+    <>
+      {isMobile ? <MobileApp /> : <DeckApp />}
+      {/* Vercel Web Analytics: privacy-friendly visitor/page-view counts. */}
+      <Analytics />
+    </>
+  );
 }
 
 // Desktop: the horizontal slide deck. Unchanged from the original single layout.
