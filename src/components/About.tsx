@@ -80,6 +80,14 @@ export default function About() {
             >
               LinkedIn ↗
             </a>
+            <a
+              href={PROFILE.resume}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded text-muted transition hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+            >
+              Resume ↓
+            </a>
           </div>
         </div>
       </div>

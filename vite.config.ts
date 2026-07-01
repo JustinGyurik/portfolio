@@ -6,7 +6,7 @@ import { SYSTEM_CONTEXT, INTERVIEW_SYSTEM_CONTEXT } from "./src/content/justin";
 // the real chat (vite does not run the Vercel serverless function). Mirrors
 // api/chat.ts: same prompts, streaming, and key handling. Production still uses
 // the serverless function.
-function devChatApi(apiKey: string, model: string): Plugin {
+function devChatApi(apiKey: string, portfolioModel: string, interviewModel: string): Plugin {
   return {
     name: "dev-chat-api",
     apply: "serve",
@@ -49,6 +49,7 @@ function devChatApi(apiKey: string, model: string): Plugin {
         const today = new Date().toISOString().slice(0, 10);
         const base = mode === "interview" ? INTERVIEW_SYSTEM_CONTEXT : SYSTEM_CONTEXT;
         const systemPrompt = `${base}\n\nToday's date is ${today}.`;
+        const chatModel = mode === "interview" ? interviewModel : portfolioModel;
 
         try {
           const upstream = await fetch("https://api.anthropic.com/v1/messages", {
@@ -59,7 +60,7 @@ function devChatApi(apiKey: string, model: string): Plugin {
               "anthropic-version": "2023-06-01",
             },
             body: JSON.stringify({
-              model,
+              model: chatModel,
               max_tokens: 1024,
               system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
               stream: true,
@@ -94,7 +95,8 @@ function devChatApi(apiKey: string, model: string): Plugin {
               try {
                 const evt = JSON.parse(payload);
                 if (evt.type === "content_block_delta" && evt.delta?.type === "text_delta") {
-                  res.write(evt.delta.text);
+                  // Backstop for Justin's no-emdash rule; mirrors api/chat.ts.
+                  res.write(evt.delta.text.replace(/\s*—\s*/g, ", "));
                 }
               } catch {
                 /* ignore keep-alives */
@@ -184,7 +186,11 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
-      devChatApi(env.ANTHROPIC_API_KEY || "", env.ANTHROPIC_MODEL || "claude-haiku-4-5-20251001"),
+      devChatApi(
+        env.ANTHROPIC_API_KEY || "",
+        env.ANTHROPIC_MODEL || "claude-haiku-4-5-20251001",
+        env.ANTHROPIC_MODEL_INTERVIEW || "claude-sonnet-5"
+      ),
       devFluentApi(env.ANTHROPIC_API_KEY || ""),
     ],
     server: { port: 5173 },

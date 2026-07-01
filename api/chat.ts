@@ -6,14 +6,51 @@ import { SYSTEM_CONTEXT, INTERVIEW_SYSTEM_CONTEXT } from "../src/content/justin.
 // Streams the reply back as plain-text chunks (text/plain) for a snappier feel.
 // The Anthropic API key stays server-side. Never expose it to the client.
 
-const MODEL = process.env.ANTHROPIC_MODEL || "claude-haiku-4-5-20251001";
+const PORTFOLIO_MODEL = process.env.ANTHROPIC_MODEL || "claude-haiku-4-5-20251001";
+const INTERVIEW_MODEL = process.env.ANTHROPIC_MODEL_INTERVIEW || "claude-sonnet-5";
 const MAX_TOKENS = 1024;
+const MAX_BODY_BYTES = 32 * 1024;
 
 type Msg = { role: "user" | "assistant"; content: string };
+
+// Best-effort per-IP rate limit: a sliding window kept in memory on whichever
+// serverless instance handles the request. Instances are ephemeral and there
+// can be several running concurrently, so this caps abuse per warm instance
+// rather than guaranteeing one global limit. That is an acceptable tradeoff
+// for a portfolio chat endpoint.
+const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
+const RATE_LIMIT_MAX = 20;
+const requestLog = new Map<string, number[]>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const recent = (requestLog.get(ip) || []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+  recent.push(now);
+  requestLog.set(ip, recent);
+  return recent.length > RATE_LIMIT_MAX;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
+    return;
+  }
+
+  const ip = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() || "unknown";
+  if (isRateLimited(ip)) {
+    res.status(429).json({
+      error: "rate_limited",
+      reply: "That's a lot of questions at once. Give it a few minutes, or email justingyurik@gmail.com.",
+    });
+    return;
+  }
+
+  const contentLength = Number(req.headers["content-length"] || 0);
+  if (contentLength > MAX_BODY_BYTES) {
+    res.status(413).json({
+      error: "payload_too_large",
+      reply: "That message was too long. Try something shorter, or email justingyurik@gmail.com.",
+    });
     return;
   }
 
@@ -43,6 +80,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const today = new Date().toISOString().slice(0, 10);
   const base = mode === "interview" ? INTERVIEW_SYSTEM_CONTEXT : SYSTEM_CONTEXT;
   const systemPrompt = `${base}\n\nToday's date is ${today}.`;
+  const model = mode === "interview" ? INTERVIEW_MODEL : PORTFOLIO_MODEL;
 
   // Keep only valid roles/strings, cap history to last 12 turns.
   const clean = messages
@@ -64,7 +102,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: MODEL,
+        model,
         max_tokens: MAX_TOKENS,
         // Cache the large knowledge-base system prompt so repeat visits are
         // cheaper and faster (the prefix is stable within a day).
@@ -113,7 +151,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         try {
           const evt = JSON.parse(payload);
           if (evt.type === "content_block_delta" && evt.delta?.type === "text_delta") {
-            res.write(evt.delta.text);
+            // Justin's hard rule is no emdashes. The system prompt says so, but
+            // Haiku occasionally slips one in anyway, so strip it as a backstop.
+            res.write(evt.delta.text.replace(/\s*—\s*/g, ", "));
             wroteAnything = true;
           }
         } catch {

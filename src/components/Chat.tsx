@@ -8,7 +8,7 @@ const GREETINGS: Record<Mode, string> = {
   portfolio:
     "Hey, I'm Justin's assistant. I know his projects and background pretty well, so ask me whatever's useful. A build, how he works, whether he'd fit a role you have. I'll keep it straight.",
   interview:
-    "I'm Justin. Treat this like an interview and ask me whatever you want, the same way you would in a real one. I'll answer straight, with real examples.",
+    "I'm Justin. Well, a version of me my knowledge base talks through. Ask me anything you'd ask in a real interview, and I'll answer the way I actually would, real examples and all.",
 };
 
 // The conversation widget and the centerpiece of the hero. Two modes: an
