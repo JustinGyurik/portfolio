@@ -184,15 +184,40 @@ function DeckApp() {
             transition: animate && !reduce ? "transform 640ms cubic-bezier(0.7, 0, 0.2, 1)" : "none",
           }}
         >
-          {track.map((s, i) => (
-            <section
-              key={i}
-              aria-hidden={i !== pos}
-              className="scroll-thin h-full w-screen shrink-0 overflow-y-auto"
-            >
-              {s.node}
-            </section>
-          ))}
+          {track.map((s, i) => {
+            // Restrained depth: content sits a layer above the track. The
+            // slide that just became active settles in from a small offset
+            // with a fade-up; the slide that just left drifts by the same
+            // small amount, which (over the same duration as the track's much
+            // larger translateX) reads as content trailing slightly behind
+            // the track's own motion rather than being glued to it.
+            const rel = Math.max(-1, Math.min(1, i - pos));
+            return (
+              <section
+                key={i}
+                aria-hidden={i !== pos}
+                className="scroll-thin h-full w-screen shrink-0 overflow-y-auto"
+              >
+                <div
+                  // min-h-full inside a slide (Hero, Builds, Writing) needs a
+                  // 100%-height reference to center against; this wrapper
+                  // must stay h-full so that percentage still resolves to the
+                  // section instead of collapsing to auto/content height.
+                  className="h-full"
+                  style={{
+                    transform: `translate(${rel * 40}px, ${rel === 0 ? 0 : 10}px)`,
+                    opacity: rel === 0 ? 1 : 0,
+                    transition:
+                      animate && !reduce
+                        ? "transform 640ms cubic-bezier(0.7, 0, 0.2, 1), opacity 420ms ease-out"
+                        : "none",
+                  }}
+                >
+                  {s.node}
+                </div>
+              </section>
+            );
+          })}
         </div>
 
         {/* Edge controls to move between slides: solid and readable at rest,
