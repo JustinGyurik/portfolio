@@ -59,6 +59,9 @@ function DeckApp() {
   const [pos, setPos] = useState(1);
   const [animate, setAnimate] = useState(true);
   const [reduce, setReduce] = useState(false);
+  // First-visit nudge: fades the moment a visitor actually navigates once, by
+  // any method. Session-only state, not persisted.
+  const [hasNavigated, setHasNavigated] = useState(false);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -75,12 +78,14 @@ function DeckApp() {
   const lock = useRef(false);
   const go = (d: number) => {
     if (lock.current) return;
+    setHasNavigated(true);
     lock.current = true;
     setAnimate(true);
     setPos((p) => p + d);
   };
   const goTo = (real: number) => {
     if (lock.current || real + 1 === pos) return;
+    setHasNavigated(true);
     lock.current = true;
     setAnimate(true);
     setPos(real + 1);
@@ -118,11 +123,59 @@ function DeckApp() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // A deliberate horizontal trackpad/wheel gesture flips one slide. Attached
+  // manually (not React's onWheel) so preventDefault reliably stops the
+  // browser's own horizontal-scroll/back-swipe on a genuinely horizontal
+  // gesture; vertical wheel scrolling inside a slide is left alone. One move
+  // per gesture, however long the gesture takes: a single swipe fires many
+  // wheel events, so the first qualifying event moves once and starts a
+  // "quiet period" timer that keeps resetting as long as events keep
+  // arriving; only once the events stop for 150ms is the gesture considered
+  // over and the next swipe allowed to move again.
+  const mainRef = useRef<HTMLElement>(null);
+  const gestureActive = useRef(false);
+  const gestureTimer = useRef<number>();
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) < Math.abs(e.deltaY) || Math.abs(e.deltaX) < 24) return;
+      e.preventDefault();
+      if (!gestureActive.current) {
+        gestureActive.current = true;
+        go(e.deltaX > 0 ? 1 : -1);
+      }
+      window.clearTimeout(gestureTimer.current);
+      gestureTimer.current = window.setTimeout(() => { gestureActive.current = false; }, 150);
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Touch swipe on the deck itself (tablets land on this desktop layout, not
+  // the mobile stacked one). Only reacts on release, and only to a clearly
+  // horizontal drag, so a vertical scroll inside a slide is never hijacked.
+  const touch = useRef({ x: 0, y: 0 });
+  const onTouchStart = (e: React.TouchEvent) => {
+    touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const dx = e.changedTouches[0].clientX - touch.current.x;
+    const dy = e.changedTouches[0].clientY - touch.current.y;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
+  };
+
   const track = [SLIDES[n - 1], ...SLIDES, SLIDES[0]];
 
   return (
     <DeckContext.Provider value={{ go }}>
-      <main className="relative h-[100dvh] w-screen overflow-hidden">
+      <main
+        ref={mainRef}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+        className="relative h-[100dvh] w-screen overflow-hidden"
+      >
         <div
           className="flex h-full"
           style={{
@@ -142,8 +195,8 @@ function DeckApp() {
           ))}
         </div>
 
-        {/* minimal edge controls to move between slides; the bottom nav names
-            every section, so these stay quiet and icon-only */}
+        {/* Edge controls to move between slides: solid and readable at rest,
+            with the destination slide named on hover. */}
         <DeckEdge dir="left" label={SLIDES[(realIndex - 1 + n) % n].label} onClick={() => go(-1)} />
         <DeckEdge dir="right" label={SLIDES[(realIndex + 1) % n].label} onClick={() => go(1)} />
 
@@ -154,11 +207,21 @@ function DeckApp() {
           className="pointer-events-none fixed inset-x-0 bottom-0 z-30 h-24 bg-gradient-to-t from-ink via-ink/85 to-transparent"
         />
 
-        {/* section indicator */}
-        <nav
-          aria-label="Sections"
-          className="fixed inset-x-0 bottom-5 z-40 flex items-center justify-center gap-1.5"
-        >
+        {/* section indicator, with a first-visit nudge stacked directly above
+            it so it stays anchored to the nav instead of floating over
+            whatever a given slide happens to render underneath. The nudge
+            fades the instant a visitor navigates once, by any method (arrows,
+            keys, trackpad, swipe, or a dot). */}
+        <div className="fixed inset-x-0 bottom-5 z-40 flex flex-col items-center gap-2">
+          <div
+            aria-hidden="true"
+            className={`pointer-events-none rounded-full border border-line/70 bg-ink/85 px-3 py-1 font-sans text-[12px] uppercase tracking-wider text-muted backdrop-blur transition-opacity duration-700 ${
+              hasNavigated ? "opacity-0" : "opacity-100"
+            }`}
+          >
+            Scroll, drag, or use the arrows
+          </div>
+          <nav aria-label="Sections" className="flex items-center justify-center gap-1.5">
           {SLIDES.map((s, j) => {
             const active = j === realIndex;
             return (
@@ -166,8 +229,10 @@ function DeckApp() {
                 key={s.id}
                 onClick={() => goTo(j)}
                 aria-current={active}
-                className={`group flex items-center gap-2 rounded-full px-3 py-1.5 text-[14px] font-medium uppercase tracking-wide transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay ${
-                  active ? "text-paper" : "text-faint hover:text-muted"
+                className={`group flex items-center gap-2 rounded-full border px-3 py-1.5 text-[14px] font-medium uppercase tracking-wide transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay ${
+                  active
+                    ? "border-clay/40 bg-clay/10 text-paper"
+                    : "border-transparent text-muted hover:text-paper"
                 }`}
               >
                 <span
@@ -179,28 +244,36 @@ function DeckApp() {
               </button>
             );
           })}
-        </nav>
+          </nav>
+        </div>
       </main>
     </DeckContext.Provider>
   );
 }
 
-// A quiet, icon-only control at each screen edge for moving between slides. It
-// sits low-key by default and brightens on hover/focus. The bottom nav already
-// names every section, so this stays minimal: no labels, no peeking drawer.
+// A solid, always-readable control at each screen edge for moving between
+// slides, naming its destination on hover ("Builds ->") so the deck reads as
+// drivable at a glance instead of relying on a visitor to discover dragging.
 function DeckEdge({ dir, label, onClick }: { dir: "left" | "right"; label: string; onClick: () => void }) {
   const left = dir === "left";
   return (
     <button
       onClick={onClick}
       aria-label={`Go to ${label}`}
-      className={`group fixed top-1/2 z-40 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-line/70 bg-ink/30 text-muted opacity-50 backdrop-blur transition-all duration-300 hover:border-clay/60 hover:bg-ink/50 hover:text-clay hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay sm:flex ${
+      className={`group fixed top-1/2 z-40 hidden h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-ink/70 text-paper/90 backdrop-blur transition-all duration-300 hover:border-clay/70 hover:bg-ink hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay sm:flex ${
         left ? "left-5" : "right-5"
       }`}
     >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6" aria-hidden="true">
         {left ? <polyline points="15 18 9 12 15 6" /> : <polyline points="9 18 15 12 9 6" />}
       </svg>
+      <span
+        className={`pointer-events-none absolute top-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-line bg-ink/90 px-3 py-1.5 font-sans text-[13px] font-medium text-paper opacity-0 backdrop-blur transition-all duration-200 group-hover:opacity-100 group-focus-visible:opacity-100 ${
+          left ? "left-full ml-3 group-hover:translate-x-0 translate-x-1" : "right-full mr-3 group-hover:translate-x-0 -translate-x-1"
+        }`}
+      >
+        {label} {left ? "←" : "→"}
+      </span>
     </button>
   );
 }
@@ -284,7 +357,7 @@ function MobileApp() {
                 onClick={() => goTo(i)}
                 aria-current={on}
                 className={`flex flex-1 flex-col items-center gap-1.5 py-2.5 font-sans text-[11px] font-medium uppercase tracking-wide transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay ${
-                  on ? "text-paper" : "text-faint"
+                  on ? "text-paper" : "text-muted"
                 }`}
               >
                 <span
