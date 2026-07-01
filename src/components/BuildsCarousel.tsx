@@ -68,27 +68,50 @@ export default function BuildsCarousel() {
   }, [CARD_ANGLE]);
 
   const { cw, ch, r, persp, segW } = dims;
+  // Audited for the goToBuild tie ambiguity above: this is a direct
+  // continuous-value-to-nearest-grid-point rounding, not a candidate search
+  // across duplicate instances, so there is nothing to disambiguate.
   const snap = useCallback((deg: number) => Math.round(deg / STEP) * STEP, [STEP]);
 
   const activeSlot = ((Math.round(rotation / STEP) % cardsAround) + cardsAround) % cardsAround;
   const activeBuild = activeSlot % n;
 
+  // INVARIANT: any build count must rotate cleanly in both directions, full
+  // circle, from any entry state. With reps=2, every build has two rim
+  // instances exactly 180deg apart, so for an EVEN build count there is
+  // always some rotation where the two candidate distances land in an exact
+  // +/-90 tie (this is what broke going from 5 builds, where 180/n is never
+  // a half-integer, to 6, where it is: normAngle(180) always folds to -180,
+  // never +180, so a naive "first candidate wins" search silently biases
+  // every tie toward the same side regardless of where the wheel is
+  // actually coming from). Ties are resolved by the shorter path through
+  // BUILD INDEX order, not by loop order or normAngle's -180 fold.
   const goToBuild = useCallback(
     (b: number) => {
-      let best = rotation;
-      let bestD = Infinity;
-      for (let s = b; s < cardsAround; s += n) {
-        const d = normAngle(s * STEP - rotation);
-        if (Math.abs(d) < bestD) { bestD = Math.abs(d); best = rotation + d; }
+      const candidates: number[] = [];
+      for (let s = b; s < cardsAround; s += n) candidates.push(normAngle(s * STEP - rotation));
+
+      let bestD = candidates[0];
+      for (const d of candidates) if (Math.abs(d) < Math.abs(bestD)) bestD = d;
+
+      const tied = candidates.filter((d) => Math.abs(Math.abs(d) - Math.abs(bestD)) < 1);
+      if (tied.length > 1) {
+        const forward = (((b - activeBuild) % n) + n) % n;
+        const wantPositive = forward * 2 <= n; // shorter (or equal) path via increasing index
+        bestD = tied.find((d) => (wantPositive ? d > 0 : d < 0)) ?? tied[0];
       }
-      setRotation(best);
+      setRotation(rotation + bestD);
     },
-    [rotation, cardsAround, n, STEP]
+    [rotation, cardsAround, n, STEP, activeBuild]
   );
 
   // Drag spins the wheel by writing the track transform directly (no React
-  // re-render per frame), then commits + snaps on release.
-  const drag = useRef({ x: 0, startRot: 0, active: false, moved: false, cur: 0 });
+  // re-render per frame), then commits + snaps on release. A little inertia
+  // is layered on: recent pointer speed is tracked, and release projects the
+  // release point a touch further along that speed before snapping, so a
+  // flicked wheel keeps turning briefly instead of stopping dead.
+  const [dragging, setDragging] = useState(false);
+  const drag = useRef({ x: 0, startRot: 0, active: false, moved: false, cur: 0, lastX: 0, lastT: 0, vx: 0 });
   const setTrack = (rot: number, animate: boolean) => {
     const t = trackRef.current;
     if (!t) return;
@@ -100,8 +123,19 @@ export default function BuildsCarousel() {
     // the stage and swallows the card's own click-to-zoom. Drag still works via
     // event bubbling from the segments, and onPointerLeave ends a drag that
     // exits the stage.
-    drag.current = { x: e.clientX, startRot: rotation, active: true, moved: false, cur: rotation };
+    const now = performance.now();
+    drag.current = {
+      x: e.clientX,
+      startRot: rotation,
+      active: true,
+      moved: false,
+      cur: rotation,
+      lastX: e.clientX,
+      lastT: now,
+      vx: 0,
+    };
     setHoverSlot(null); // spinning by drag clears the neighbor highlight
+    setDragging(true);
   };
   const onPointerMove = (e: React.PointerEvent) => {
     const d = drag.current;
@@ -110,11 +144,23 @@ export default function BuildsCarousel() {
     if (Math.abs(dx) > 6) d.moved = true;
     d.cur = d.startRot - dx * (STEP / (cw * 0.9));
     setTrack(d.cur, false);
+    const now = performance.now();
+    const dt = now - d.lastT;
+    if (dt > 4) {
+      d.vx = (e.clientX - d.lastX) / dt; // px/ms, most-recent sample wins
+      d.lastX = e.clientX;
+      d.lastT = now;
+    }
   };
   const endDrag = () => {
     if (!drag.current.active) return;
     drag.current.active = false;
-    const snapped = snap(drag.current.cur);
+    setDragging(false);
+    // Project a short coast from release velocity, capped so a hard flick
+    // cannot send the wheel spinning past its neighbor's neighbor.
+    const pxToDeg = STEP / (cw * 0.9);
+    const coastDeg = Math.max(-STEP * 1.5, Math.min(STEP * 1.5, -drag.current.vx * pxToDeg * 90));
+    const snapped = snap(drag.current.cur + coastDeg);
     if (trackRef.current) trackRef.current.style.transition = "";
     setRotation(snapped);
   };
@@ -148,21 +194,52 @@ export default function BuildsCarousel() {
     );
   }
 
+  const step = (dir: 1 | -1) => goToBuild((((activeBuild + dir) % n) + n) % n);
+
   return (
     <>
       <div className="relative">
+        <button
+          type="button"
+          onClick={() => step(-1)}
+          aria-label="Previous build"
+          className="wheel-arrow absolute left-2 sm:left-4 md:left-8 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-line/80 bg-ink/50 text-muted backdrop-blur transition hover:border-clay/70 hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay sm:h-12 sm:w-12"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          onClick={() => step(1)}
+          aria-label="Next build"
+          className="wheel-arrow absolute right-2 sm:right-4 md:right-8 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-line/80 bg-ink/50 text-muted backdrop-blur transition hover:border-clay/70 hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay sm:h-12 sm:w-12"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
         <div
           ref={stageRef}
           className="cf-stage focus-visible:outline-none"
-          style={{ height: ch + 110, perspective: `${persp}px`, perspectiveOrigin: "50% 50%" }}
+          style={{
+            height: ch + 110,
+            perspective: `${persp}px`,
+            perspectiveOrigin: "50% 50%",
+            cursor: dragging ? "grabbing" : "grab",
+          }}
           tabIndex={0}
           role="group"
           aria-roledescription="carousel"
-          aria-label="Selected builds, on a spinning wheel"
+          aria-label="Selected builds, on a spinning wheel. Drag, use the arrow buttons, or press the left and right arrow keys."
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={endDrag}
           onPointerCancel={endDrag}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowLeft") { e.preventDefault(); step(-1); }
+            else if (e.key === "ArrowRight") { e.preventDefault(); step(1); }
+          }}
         >
           <div className="cf-halo" style={{ width: cw * 1.1, height: ch * 1.05 }} />
           <div
@@ -173,6 +250,13 @@ export default function BuildsCarousel() {
             {Array.from({ length: cardsAround }).map((_, c) => {
               const b = BUILDS[c % n];
               const cardAngle = normAngle(c * STEP - rotation);
+              // Audited for the goToBuild tie ambiguity above: cardAngle here
+              // belongs to one concrete rendered slot `c`, not a search across
+              // a build's duplicate instances, and the +/-96deg cull below
+              // means two instances of the same build can never both be
+              // visible/clickable at once (they are always 180deg apart, so
+              // both landing within a shared 192deg window is impossible).
+              // Nothing to disambiguate.
               if (Math.abs(cardAngle) > 96) return null; // cull the back half
               const isCenter = Math.abs(cardAngle) < STEP / 2;
               const t = Math.min(1, Math.abs(cardAngle) / 90);
@@ -194,7 +278,13 @@ export default function BuildsCarousel() {
                       // Overlap each slice slightly so the facet seams close up.
                       width: segW + 2,
                       height: ch,
-                      transform: `translate(-50%, -50%) rotateY(${segAngle}deg) translateZ(${r}px)`,
+                      // The center card sits a touch nearer the camera (bigger via
+                      // perspective foreshortening, not a CSS scale): scaling each
+                      // slice independently would tear the card's curved surface
+                      // apart at the seams, but every slice of a card shares the
+                      // same radius, so nudging that radius as a rigid body keeps
+                      // the curve intact while still reading as a "pop" on arrival.
+                      transform: `translate(-50%, -50%) rotateY(${segAngle}deg) translateZ(${isCenter ? r + 5 : r}px)`,
                       zIndex: zi,
                       opacity: cardOpacity,
                       pointerEvents: cardOpacity < 0.5 ? "none" : "auto",
@@ -254,7 +344,7 @@ export default function BuildsCarousel() {
         </span>
       </div>
       <p className="mt-3 text-center text-[14px] text-muted">
-        Click a side card to bring it forward. Click the front card to open it.
+        Drag, use the arrows, or click a side card.
       </p>
 
       {zoom && <ZoomPanel build={zoom} onClose={() => setZoom(null)} onLaunch={setDemo} />}
