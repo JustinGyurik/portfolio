@@ -72,7 +72,7 @@ export default function Writing() {
                   <button
                     onClick={() => jump(s.id)}
                     className={`flex w-full items-start gap-3 rounded-lg py-1.5 pl-3 pr-2 text-left text-[15px] leading-snug transition ${
-                      on ? "text-paper" : "text-faint hover:text-muted"
+                      on ? "bg-clay/10 text-paper" : "text-faint hover:text-muted"
                     }`}
                   >
                     <span
