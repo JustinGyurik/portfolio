@@ -182,7 +182,7 @@ export default function BuildsCarousel() {
             <button
               key={b.no}
               onClick={() => setZoom(b)}
-              className="glass group rounded-2xl p-4 text-left transition hover:border-clay/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+              className="glass group rounded-2xl p-4 text-left transition duration-200 hover:-translate-y-0.5 hover:border-clay/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay"
             >
               <CardBody b={b} center />
             </button>
@@ -553,28 +553,39 @@ function ZoomPanel({
   onClose: () => void;
   onLaunch: (b: Build) => void;
 }) {
+  // The open animation is CSS-only (mount = play), but a matching close needs
+  // the panel to stay mounted just long enough to play its own exit keyframe,
+  // so closing is a local "please go now" state that fires the real onClose
+  // after the 120ms exit finishes rather than unmounting instantly.
+  const [closing, setClosing] = useState(false);
+  const requestClose = () => {
+    if (closing) return;
+    setClosing(true);
+    window.setTimeout(onClose, 120);
+  };
+
   // Portaled to <body>: the page is a horizontal slide-deck whose track is
   // `transform`-translated, and a transformed ancestor becomes the containing
   // block for `position: fixed`, which would shove this off-center (to the
   // active slide's offset). Same reason DemoHost is portaled.
   return createPortal(
     <div
-      className="zoom-backdrop fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-4 backdrop-blur-sm sm:p-8"
+      className={`zoom-backdrop fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-4 backdrop-blur-sm sm:p-8 ${closing ? "closing" : ""}`}
       role="dialog"
       aria-modal="true"
       aria-label={b.name}
-      onClick={onClose}
+      onClick={requestClose}
     >
       <div
-        className="zoom-panel iri-spin glass glass-blur relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl"
+        className={`zoom-panel iri-spin glass glass-blur relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl ${closing ? "closing" : ""}`}
         onClick={(e) => e.stopPropagation()}
       >
         <button
-          onClick={onClose}
+          onClick={requestClose}
           aria-label="Close"
-          className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-line bg-ink/60 text-paper transition hover:border-clay hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+          className="group absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-line bg-ink/60 text-paper transition hover:border-clay hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay"
         >
-          ✕
+          <span className="inline-block transition-transform duration-200 group-hover:rotate-90">✕</span>
         </button>
         <div className="p-6 sm:p-8">
           <div className="mb-5 overflow-hidden rounded-xl border border-line">
@@ -608,7 +619,7 @@ function ZoomPanel({
                   onLaunch(b);
                   onClose();
                 }}
-                className="iris-ring group inline-flex items-center gap-2.5 rounded-full border border-clay/50 px-5 py-2.5 text-sm font-semibold text-paper transition hover:border-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+                className="iris-ring group inline-flex items-center gap-2.5 rounded-full border border-clay/50 px-5 py-2.5 text-sm font-semibold text-paper transition hover:border-clay active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay"
                 style={{ background: "linear-gradient(180deg, rgba(155,124,255,0.22), rgba(109,74,224,0.16))" }}
               >
                 <span aria-hidden="true">▶</span>

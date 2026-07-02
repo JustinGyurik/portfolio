@@ -86,19 +86,38 @@ body::before {
   opacity: 0.7;
 }
 
-/* reveal-on-scroll */
+/* reveal-on-scroll: snappier than it used to be (was 0.7s, read as sleepy) */
 .reveal {
   opacity: 0;
   transform: translateY(18px);
-  transition: opacity 0.7s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: opacity 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .reveal.in {
   opacity: 1;
   transform: none;
 }
 
+/* A list inside a reveal block: the wrapper itself appears immediately, and
+   its direct children stagger in one after another instead of popping in
+   together. Opt-in (reveal-list, not every .reveal), for genuine repeated
+   lists like a timeline or a stack of categories. */
+.reveal-list { opacity: 1; transform: none; }
+.reveal-list > * {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.reveal-list.in > * { opacity: 1; transform: none; }
+.reveal-list.in > *:nth-child(1) { transition-delay: 0ms; }
+.reveal-list.in > *:nth-child(2) { transition-delay: 60ms; }
+.reveal-list.in > *:nth-child(3) { transition-delay: 120ms; }
+.reveal-list.in > *:nth-child(4) { transition-delay: 180ms; }
+.reveal-list.in > *:nth-child(5) { transition-delay: 240ms; }
+.reveal-list.in > *:nth-child(6) { transition-delay: 300ms; }
+
 @media (prefers-reduced-motion: reduce) {
   .reveal { opacity: 1; transform: none; transition: none; }
+  .reveal-list > * { opacity: 1; transform: none; transition: none; }
   .iris-text, .iris-ring::before { animation: none; }
   html { scroll-behavior: auto; }
 }
@@ -254,17 +273,29 @@ body::before {
   .cf-track { transition: none; }
 }
 
-/* Zoom-into-detail overlay. */
+/* Zoom-into-detail overlay: a quick, restrained scale + fade. Snappier open
+   than close (150ms in, 120ms out) so it feels responsive going in and settled
+   coming out, not symmetric-and-mechanical. */
 @keyframes zoom-in {
-  from { opacity: 0; transform: scale(0.9); }
+  from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: none; }
+}
+@keyframes zoom-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: scale(0.96); }
 }
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-.zoom-backdrop { animation: fade-in 220ms ease forwards; }
-.zoom-panel { animation: zoom-in 460ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+.zoom-backdrop { animation: fade-in 150ms ease forwards; }
+.zoom-panel { animation: zoom-in 150ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.zoom-backdrop.closing { animation: fade-out 120ms ease forwards; }
+.zoom-panel.closing { animation: zoom-out 120ms cubic-bezier(0.4, 0, 1, 1) forwards; }
 
 @media (prefers-reduced-motion: reduce) {
   .cf-item, .cf-inner { transition: none; }

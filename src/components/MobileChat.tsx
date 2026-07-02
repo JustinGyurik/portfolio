@@ -25,7 +25,7 @@ export default function MobileChat() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="iris-ring group flex w-full items-center gap-3 rounded-2xl border border-line bg-panel/70 px-4 py-3.5 text-left shadow-[0_30px_80px_-30px_rgba(124,92,255,0.5)] backdrop-blur transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+        className="iris-ring group flex w-full items-center gap-3 rounded-2xl border border-line bg-panel/70 px-4 py-3.5 text-left shadow-[0_30px_80px_-30px_rgba(124,92,255,0.5)] backdrop-blur transition hover:-translate-y-0.5 hover:border-clay/50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay"
       >
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-clay text-ink">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5" aria-hidden="true">

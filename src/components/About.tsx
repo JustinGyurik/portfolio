@@ -14,7 +14,7 @@ export default function About() {
 
         <div className="grid gap-12 md:grid-cols-[1.3fr_1fr]">
           <div className="reveal">
-            <ol className="relative border-l border-line">
+            <ol className="reveal-list relative border-l border-line">
               {EXPERIENCE.map((e) => (
                 <li key={e.role} className="mb-9 ml-6">
                   <span className="absolute -left-[5px] mt-1.5 h-2.5 w-2.5 rounded-full bg-clay" />
@@ -32,7 +32,7 @@ export default function About() {
               <div className="mb-3 font-sans text-[13px] uppercase tracking-wider text-faint">
                 Stack
               </div>
-              <div className="space-y-3">
+              <div className="reveal-list space-y-3">
                 {Object.entries(FACTS.stack).map(([k, v]) => (
                   <div key={k}>
                     <div className="text-xs font-medium text-clay">{k}</div>
@@ -45,7 +45,7 @@ export default function About() {
               <div className="mb-3 font-sans text-[13px] uppercase tracking-wider text-faint">
                 Foundations
               </div>
-              <ul className="space-y-2">
+              <ul className="reveal-list space-y-2">
                 {FACTS.education.map((e) => (
                   <li key={e} className="text-sm leading-snug text-muted">
                     {e}

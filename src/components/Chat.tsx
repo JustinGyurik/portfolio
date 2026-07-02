@@ -208,7 +208,7 @@ export default function Chat({
           <button
             type="submit"
             disabled={busy || !input.trim()}
-            className="rounded-2xl bg-clay px-6 py-3 text-[17px] font-semibold text-ink transition hover:bg-amber focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2 focus-visible:ring-offset-panel disabled:opacity-40"
+            className="rounded-2xl bg-clay px-6 py-3 text-[17px] font-semibold text-ink transition hover:bg-amber active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2 focus-visible:ring-offset-panel disabled:opacity-40 disabled:active:scale-100"
           >
             Send
           </button>

@@ -5,7 +5,7 @@ import { useEffect } from "react";
 // the motion between sections.
 export function useReveal() {
   useEffect(() => {
-    const els = Array.from(document.querySelectorAll<HTMLElement>(".reveal"));
+    const els = Array.from(document.querySelectorAll<HTMLElement>(".reveal, .reveal-list"));
     const id = requestAnimationFrame(() => els.forEach((el) => el.classList.add("in")));
     return () => cancelAnimationFrame(id);
   }, []);
