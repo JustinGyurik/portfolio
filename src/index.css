@@ -300,7 +300,10 @@ body::before {
 @media (prefers-reduced-motion: reduce) {
   .cf-item, .cf-inner { transition: none; }
   .iri-spin::before { animation: none; }
-  .zoom-backdrop, .zoom-panel { animation: none; }
+  /* .closing has higher specificity (two classes) than the plain selectors
+     above, so it needs its own explicit override here or reduced-motion
+     visitors would still get the closing animation. */
+  .zoom-backdrop, .zoom-panel, .zoom-backdrop.closing, .zoom-panel.closing { animation: none; }
 }
 
 /* ── Taffy mixer demo: the real plugin's warm, hand-drawn, candy aesthetic. ──
