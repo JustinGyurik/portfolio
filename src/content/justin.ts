@@ -99,8 +99,10 @@ export const BUILDS: Build[] = [
       "A companion memory system built on a custom MCP server: workstreams, open loops, decisions, reflections, and a growth model, all persisted in a database that every Claude surface shares. The same memory follows the work across Claude chat, Cowork, and Claude Code, so a project planned in one place picks up exactly where it left off in another. It runs a learn, reflect, synthesize, act loop over everything it observes, detects contradictions in its own memory, and proposes next actions instead of waiting to be asked. The newest layer is an overnight factory: a scheduled Claude Code loop that picks up queued build tasks at night, works on isolated branches, opens PRs, and files a morning briefing, with nothing touching main without review. It is Justin's daily driver and testbed for what durable human-AI collaboration should feel like.",
     stack: ["MCP server", "Claude API", "Postgres", "Claude Code + Cowork + chat", "scheduled agents", "Node/TypeScript"],
     status: "In daily use",
-    image: "/builds/continuity.png",
-    imageAlt: "Continuity: a persistent memory system for Claude, showing workstreams, open loops, and proposed next actions.",
+    // No screenshot yet: leave image unset so BuildMedia renders its
+    // placeholder frame straight away, rather than pointing at a file that
+    // doesn't exist (public/builds/continuity.png), which made every mount
+    // attempt-then-fail an image request before falling back.
   },
   {
     no: "06",

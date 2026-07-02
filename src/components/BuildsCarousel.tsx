@@ -303,6 +303,14 @@ export default function BuildsCarousel() {
                       if (!isCenter && !drag.current.active) setHoverSlot(c);
                     }}
                     onMouseLeave={() => setHoverSlot((h) => (h === c ? null : h))}
+                    // Deliberately onClick, not onPointerUp: the stage's own
+                    // onPointerUp (endDrag, below) unconditionally commits a
+                    // snapped rotation from drag state, and fires first as
+                    // the pointerup event bubbles up from this segment to the
+                    // stage. onClick fires later, after that whole phase
+                    // settles, so it always has the last word on rotation.
+                    // Moving activation to pointerup would let endDrag's
+                    // snap silently overwrite the click's target rotation.
                     onClick={() => {
                       // A quick tap counts as a click even if it nudged past
                       // the move threshold above: real drags to spin the
