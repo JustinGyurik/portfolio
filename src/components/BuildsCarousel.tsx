@@ -111,7 +111,7 @@ export default function BuildsCarousel() {
   // release point a touch further along that speed before snapping, so a
   // flicked wheel keeps turning briefly instead of stopping dead.
   const [dragging, setDragging] = useState(false);
-  const drag = useRef({ x: 0, startRot: 0, active: false, moved: false, cur: 0, lastX: 0, lastT: 0, vx: 0 });
+  const drag = useRef({ x: 0, startRot: 0, active: false, moved: false, cur: 0, lastX: 0, lastT: 0, vx: 0, downTime: 0 });
   const setTrack = (rot: number, animate: boolean) => {
     const t = trackRef.current;
     if (!t) return;
@@ -133,6 +133,7 @@ export default function BuildsCarousel() {
       lastX: e.clientX,
       lastT: now,
       vx: 0,
+      downTime: now,
     };
     setHoverSlot(null); // spinning by drag clears the neighbor highlight
     setDragging(true);
@@ -141,7 +142,13 @@ export default function BuildsCarousel() {
     const d = drag.current;
     if (!d.active) return;
     const dx = e.clientX - d.x;
-    if (Math.abs(dx) > 6) d.moved = true;
+    // A card further from center renders narrower, so a real click there is
+    // more likely to nudge a couple pixels between mousedown and mouseup
+    // (ordinary mouse/trackpad jitter, more so with a trackpad tap). A wider
+    // pixel threshold alone would blur real drags, so a fast pointerdown-to-
+    // click is also allowed some slack in the click handler below by elapsed
+    // time, not just distance.
+    if (Math.abs(dx) > 10) d.moved = true;
     d.cur = d.startRot - dx * (STEP / (cw * 0.9));
     setTrack(d.cur, false);
     const now = performance.now();
@@ -297,7 +304,12 @@ export default function BuildsCarousel() {
                     }}
                     onMouseLeave={() => setHoverSlot((h) => (h === c ? null : h))}
                     onClick={() => {
-                      if (drag.current.moved) return;
+                      // A quick tap counts as a click even if it nudged past
+                      // the move threshold above: real drags to spin the
+                      // wheel are deliberate, sustained motions, not a
+                      // 100ms flick, so this only forgives incidental jitter.
+                      const quick = performance.now() - drag.current.downTime < 250;
+                      if (drag.current.moved && !quick) return;
                       if (isCenter) setZoom(b);
                       else {
                         setHoverSlot(null);
