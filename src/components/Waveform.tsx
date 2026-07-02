@@ -2,8 +2,15 @@ import { useEffect, useRef } from "react";
 
 // A living waveform: the studio motif. Bars breathe on a sine field and
 // respond subtly to the pointer. Pure canvas, 60fps, reduced-motion aware.
-export default function Waveform() {
+// `boost` (true while a chat reply is streaming) lifts amplitude briefly; a
+// ref keeps the always-running draw loop reading the latest value without
+// tearing down and restarting the whole animation setup.
+export default function Waveform({ boost = false }: { boost?: boolean } = {}) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const boostRef = useRef(boost);
+  useEffect(() => {
+    boostRef.current = boost;
+  }, [boost]);
 
   useEffect(() => {
     const cvRaw = ref.current;
@@ -17,6 +24,7 @@ export default function Waveform() {
     let raf = 0;
     let t = 0;
     let mx = 0.5;
+    let boostAmt = 1; // eases toward 1.3x while boost is true, back to 1x after
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
     function resize() {
@@ -42,6 +50,7 @@ export default function Waveform() {
       const bars = Math.max(28, Math.floor(w / 14));
       const gap = w / bars;
       const mid = h / 2;
+      boostAmt += ((boostRef.current ? 1.3 : 1) - boostAmt) * 0.04;
       for (let i = 0; i < bars; i++) {
         const p = i / bars;
         const focus = 1 - Math.min(1, Math.abs(p - mx) * 2.2);
@@ -50,7 +59,7 @@ export default function Waveform() {
           Math.sin(p * 9 + t * 1.4) * 0.5 +
           Math.sin(p * 17 - t * 0.9) * 0.3 +
           Math.sin(p * 4 + t * 0.5) * 0.2;
-        const amp = (0.18 + 0.5 * env + 0.4 * focus) * (0.5 + 0.5 * wave);
+        const amp = (0.18 + 0.5 * env + 0.4 * focus) * (0.5 + 0.5 * wave) * boostAmt;
         const barH = Math.max(2, amp * h * 0.42);
         const x = i * gap + gap * 0.5;
         // Iridescent hue sweeps across the field (violet -> magenta -> cyan)

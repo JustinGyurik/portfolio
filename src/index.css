@@ -315,3 +315,12 @@ body::before {
   30% { transform: scale(1); opacity: 1; }
   100% { transform: scale(0.92); opacity: 0.85; }
 }
+
+/* Hero chat panel: a slow, barely-there breath of light behind the
+   centerpiece. Restrained on purpose: opacity only moves 0.15 -> 0.25. */
+@keyframes hero-chat-glow {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.25; }
+}
+.hero-chat-glow { animation: hero-chat-glow 8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .hero-chat-glow { animation: none; opacity: 0.18; } }

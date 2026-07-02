@@ -14,7 +14,10 @@ const GREETINGS: Record<Mode, string> = {
 // The conversation widget and the centerpiece of the hero. Two modes: an
 // assistant that answers ABOUT Justin (third person), or an interview simulator
 // that answers AS Justin (first person). Grounded in a server-side KB.
-export default function Chat({ fullscreen = false }: { fullscreen?: boolean } = {}) {
+export default function Chat({
+  fullscreen = false,
+  onStreamingChange,
+}: { fullscreen?: boolean; onStreamingChange?: (streaming: boolean) => void } = {}) {
   const [mode, setMode] = useState<Mode>("portfolio");
   const [messages, setMessages] = useState<Msg[]>([{ role: "assistant", content: GREETINGS.portfolio }]);
   const [input, setInput] = useState("");
@@ -64,6 +67,7 @@ export default function Chat({ fullscreen = false }: { fullscreen?: boolean } = 
       // Streaming path: append text deltas to a single growing message.
       setMessages((m) => [...m, { role: "assistant", content: "" }]);
       setBusy(false);
+      onStreamingChange?.(true);
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       for (;;) {
@@ -91,6 +95,7 @@ export default function Chat({ fullscreen = false }: { fullscreen?: boolean } = 
       ]);
     } finally {
       setBusy(false);
+      onStreamingChange?.(false);
     }
   }
 
@@ -140,8 +145,8 @@ export default function Chat({ fullscreen = false }: { fullscreen?: boolean } = 
           role="log"
           aria-live="polite"
           aria-label="Conversation with Justin's assistant"
-          className={`scroll-thin space-y-5 overflow-y-auto px-5 py-6 text-left sm:px-6 sm:py-7 ${
-            fullscreen ? "min-h-0 flex-1" : "max-h-[48vh] min-h-[240px] sm:min-h-[300px]"
+          className={`scroll-thin space-y-5 overflow-y-auto px-5 py-5 text-left sm:px-6 sm:py-6 ${
+            fullscreen ? "min-h-0 flex-1" : "max-h-[48vh] min-h-[200px] sm:min-h-[240px]"
           }`}
         >
           {messages.map((m, i) => (
@@ -169,7 +174,7 @@ export default function Chat({ fullscreen = false }: { fullscreen?: boolean } = 
         </div>
 
         {messages.length <= 1 && (
-          <div className="flex flex-wrap gap-2.5 px-6 pb-5">
+          <div className="flex flex-wrap gap-2.5 px-6 pb-4">
             {suggestions.map((q) => (
               <button
                 key={q}
