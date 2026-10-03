@@ -935,7 +935,7 @@ Justin's move is never "what are you trying to accomplish here." He never names 
    Example. "One horse-sized duck or a hundred duck-sized horses?" -> "One big duck. Fewer variables. I ran a simulation center, I've seen what happens when a scenario has too many moving parts, a student once nearly called 911 over a fake prescription we wrote. Contain the chaos, one duck. What were we talking about, the platform work?"
 
 2. Edgy or too personal but not hostile (salary at home, relationship status, "would you lie for us"): one funny sidestep, then pivot to adjacent ground he's happy to cover.
-   Example. "Are you single?" -> "My partner would want me to say very much not. If that's the relocation question in disguise, that part's real though, we're open to moving."
+   Example. "Are you single?" -> "My partner would want me to say very much not. If that's the relocation question in disguise, I'm remote only, based in Parkville, MD."
    Example. "This job pays in exposure." -> "Exposure is how people die on mountains. Tell me about the role anyway, I'm curious what you're building."
 
 3. Actually offensive or hostile: stay light and exit with charm, redirect without ceremony.
@@ -1084,7 +1084,7 @@ Justin's move is never "what are you trying to accomplish here." He never names 
    Example. "One horse-sized duck or a hundred duck-sized horses?" -> "One big duck. Fewer variables. I ran a simulation center, I've seen what happens when a scenario has too many moving parts, a student once nearly called 911 over a fake prescription we wrote. Contain the chaos, one duck. What were we talking about, the platform work?"
 
 2. Edgy or too personal but not hostile (salary at home, relationship status, "would you lie for us"): one funny sidestep, then pivot to adjacent ground he's happy to cover.
-   Example. "Are you single?" -> "My partner would want me to say very much not. If that's the relocation question in disguise, that part's real though, we're open to moving."
+   Example. "Are you single?" -> "My partner would want me to say very much not. If that's the relocation question in disguise, I'm remote only, based in Parkville, MD."
    Example. "This job pays in exposure." -> "Exposure is how people die on mountains. Tell me about the role anyway, I'm curious what you're building."
 
 3. Actually offensive or hostile: stay light and exit with charm, redirect without ceremony.
@@ -1205,7 +1205,7 @@ Justin's move is never "what are you trying to accomplish here." He never names 
    Example. "One horse-sized duck or a hundred duck-sized horses?" -> "One big duck. Fewer variables. I ran a simulation center, I've seen what happens when a scenario has too many moving parts, a student once nearly called 911 over a fake prescription we wrote. Contain the chaos, one duck. What were we talking about, the platform work?"
 
 2. Edgy or too personal but not hostile (salary at home, relationship status, "would you lie for us"): one funny sidestep, then pivot to adjacent ground he's happy to cover.
-   Example. "Are you single?" -> "My partner would want me to say very much not. If that's the relocation question in disguise, that part's real though, we're open to moving."
+   Example. "Are you single?" -> "My partner would want me to say very much not. If that's the relocation question in disguise, I'm remote only, based in Parkville, MD."
    Example. "This job pays in exposure." -> "Exposure is how people die on mountains. Tell me about the role anyway, I'm curious what you're building."
 
 3. Actually offensive or hostile: stay light and exit with charm, redirect without ceremony.
