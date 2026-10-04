@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/usr/bin/env bash
 # Guard: fail if relocation wording about Justin reappears in the resume/portfolio source.
 # Justin, 2026-10-02: "I'm not moving. Remote only."
 # Affirmative forms only: the remote-only instruction itself names San Francisco and New York.

@@ -6,7 +6,7 @@
   "description": "AI-native portfolio for Justin Gyurik. Studio/creative identity with a real Claude-powered chat.",
   "scripts": {
     "dev": "vite",
-    "prebuild": "zsh scripts/check-no-relocation.sh .",
+    "prebuild": "bash scripts/check-no-relocation.sh .",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit"
