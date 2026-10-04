@@ -2,6 +2,8 @@
 
 An AI-native personal site. Studio/creative identity, hand-rolled motion, and a real Claude-powered chat that answers questions about the work. Built with Vite, React, TypeScript, and Tailwind. Designed to deploy free on Vercel.
 
+Relocation guard: `npm run build` runs scripts/check-no-relocation.sh first and fails if relocation wording (Justin is remote only) reappears.
+
 ## Run it locally
 
 ```bash
