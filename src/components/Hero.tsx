@@ -4,6 +4,7 @@ import Chat from "./Chat";
 import MobileChat from "./MobileChat";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { DeckContext } from "../deck";
+import { PROFILE } from "../content/justin";
 
 export default function Hero() {
   const { go } = useContext(DeckContext);
@@ -25,10 +26,11 @@ export default function Hero() {
       </div>
 
       <div className="relative mx-auto flex w-full max-w-2xl flex-col items-center text-center lg:max-w-3xl">
-        <div className="mb-3 flex items-center gap-2.5 font-sans text-xs tracking-widest text-muted">
+        <div className="mb-1 flex items-center gap-2.5 font-sans text-xs tracking-widest text-muted">
           <span className="h-2 w-2 rounded-full bg-clay shadow-[0_0_12px_rgba(155,124,255,0.9)]" />
           JUSTIN GYURIK
         </div>
+        <p className="mb-3 font-sans text-xs text-muted">{PROFILE.location}</p>
 
         <h1 className="max-w-2xl font-display text-[clamp(2.2rem,6vw,4rem)] font-semibold leading-[1.05] tracking-tight">
           I build <span className="iris-text">AI-native software</span>.
