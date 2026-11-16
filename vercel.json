@@ -4,6 +4,7 @@
   "outputDirectory": "dist",
   "rewrites": [
     { "source": "/clinical", "destination": "https://private-evidence-reading-room.justingyurik.chatgpt.site/clinical" },
+    { "source": "/clinical/", "destination": "https://private-evidence-reading-room.justingyurik.chatgpt.site/clinical/" },
     { "source": "/clinical/:path*", "destination": "https://private-evidence-reading-room.justingyurik.chatgpt.site/clinical/:path*" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
@@ -24,7 +25,7 @@
       ]
     },
     {
-      "source": "/clinical/:path*",
+      "source": "/clinical(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "private, no-store, max-age=0" },
         { "key": "CDN-Cache-Control", "value": "no-store" },
