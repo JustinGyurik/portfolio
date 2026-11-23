@@ -1,0 +1,38 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive"><meta name="color-scheme" content="dark"><title>Private</title><style>
+*{box-sizing:border-box}body{margin:0;background:#0d1117;color:#eef2f7;font:17px/1.5 system-ui,-apple-system,Helvetica,Arial,sans-serif}
+main{max-width:900px;margin:0 auto;padding:22px 16px 90px}h1{font-size:25px;line-height:1.25;margin:6px 0}h2{font-size:21px;margin:34px 0 8px;color:#f0c674;border-bottom:1px solid #3a4658;padding-bottom:6px}
+.sub{color:#b9c4d2;font-size:15px}.card{background:#161d28;border:1px solid #2f3b4d;border-radius:12px;padding:14px 16px;margin:14px 0}
+.num{font-weight:700;font-size:21px}.when{color:#b9c4d2;font-size:15px;margin:2px 0}.ttl{font-size:18px;margin:6px 0 10px}
+button,input{font:inherit}button{background:#f0c674;color:#111;border:0;border-radius:10px;padding:12px 18px;font-weight:700;cursor:pointer}
+button:disabled{opacity:.6}.clip{margin:10px 0}.cl{font-size:14px;color:#b9c4d2;margin-bottom:4px}audio,video{width:100%;margin-top:6px}video{max-height:70vh;background:#000;border-radius:8px}
+details{margin-top:8px}summary{cursor:pointer;font-weight:600;color:#cfd8e3}.tr p{margin:3px 0;font-size:16px}.t{color:#8291a5}
+#gate{max-width:440px;margin:14vh auto 0;padding:0 18px}#gate input{width:100%;padding:14px;border-radius:10px;border:1px solid #47566b;background:#0b1017;color:#fff;margin:12px 0;font-size:18px;letter-spacing:1px}
+#gate button{width:100%}#msg{color:#ff9d9d;min-height:24px}.none{color:#b9c4d2;font-style:italic}.jump a{display:inline-block;border:1px solid #47566b;border-radius:8px;padding:4px 10px;margin:0 6px 6px 0;color:#f0c674;text-decoration:none;font-size:15px}
+</style></head><body>
+<div id="gate"><h1>Private</h1><p class="sub">Enter the password to open this page.</p><form id="f"><input id="pw" type="password" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Password"><button id="go">Open</button></form><p id="msg"></p></div>
+<main id="app" hidden></main>
+<script>
+const SALT=Uint8Array.from(atob("K5L8cnhOJqbfrr6QE2yZTw=="),c=>c.charCodeAt(0)),ITER=600000;let K=null;
+const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
+async function getKey(pw){const n=pw.toUpperCase().replace(/[^A-Z0-9]/g,"");const km=await crypto.subtle.importKey("raw",new TextEncoder().encode(n),"PBKDF2",false,["deriveKey"]);
+ return crypto.subtle.deriveKey({name:"PBKDF2",salt:SALT,iterations:ITER,hash:"SHA-256"},km,{name:"AES-GCM",length:256},false,["decrypt"])}
+async function dec(name){const r=await fetch((function(){var b=location.pathname.replace(/index\.html$/,"");return b.slice(-1)=="/"?b:b+"/"})()+"d/"+name+".bin",{cache:"no-store"});if(!r.ok)throw new Error("file");const b=new Uint8Array(await r.arrayBuffer());
+ return crypto.subtle.decrypt({name:"AES-GCM",iv:b.slice(0,12)},K,b.slice(12))}
+function clipEl(c){const w=el("div","clip");w.appendChild(el("div","cl",c.label));const b=el("button",null,"Load recording");w.appendChild(b);
+ b.onclick=async()=>{b.disabled=true;b.textContent="Loading...";try{const buf=await dec(c.id);const u=URL.createObjectURL(new Blob([buf],{type:c.video?"video/mp4":"audio/mp4"}));
+  const m=document.createElement(c.video?"video":"audio");m.controls=true;m.preload="metadata";m.setAttribute("playsinline","");m.src=u;
+  m.addEventListener("play",()=>{document.querySelectorAll("audio,video").forEach(o=>{if(o!==m)o.pause()})});b.replaceWith(m)}catch(e){b.disabled=false;b.textContent="Could not load. Tap to try again."}};return w}
+function render(M){const a=document.getElementById("app");a.appendChild(el("h1",null,M.title));a.appendChild(el("p","sub",M.sub));
+ const j=el("p","jump");a.appendChild(j);M.groups.forEach((g,i)=>{const l=el("a",null,g.h);l.href="#g"+i;j.appendChild(l);const h=el("h2",null,g.h);h.id="g"+i;a.appendChild(h);
+  g.cards.forEach(c=>{const d=el("div","card");d.appendChild(el("div","num",c.head));d.appendChild(el("div","when",c.when));d.appendChild(el("div","ttl",c.title));
+   (c.clips||[]).forEach(x=>d.appendChild(clipEl(x)));if(c.none)d.appendChild(el("p","none",c.none));
+   if(c.lines&&c.lines.length){const dt=el("details"),s=el("summary",null,"Transcript");dt.appendChild(s);const tr=el("div","tr");
+    c.lines.forEach(L=>{const p=el("p");if(L[0]){p.appendChild(el("span","t","["+L[0]+"] "))}if(L[1]){const b=el("b",null,L[1]+": ");p.appendChild(b)}
+     if(!L[0]&&!L[1]){p.appendChild(el("b",null,L[2]))}else{p.appendChild(document.createTextNode(L[2]))}tr.appendChild(p)});dt.appendChild(tr);d.appendChild(dt)}
+   a.appendChild(d)})});document.getElementById("gate").hidden=true;a.hidden=false}
+document.getElementById("f").onsubmit=async e=>{e.preventDefault();const msg=document.getElementById("msg"),go=document.getElementById("go");msg.textContent="";
+ if(!(window.crypto&&crypto.subtle)){msg.textContent="This browser cannot open the page. Use Safari or Chrome over https.";return}
+ go.disabled=true;go.textContent="Opening...";try{K=await getKey(document.getElementById("pw").value);const m=await dec("m");render(JSON.parse(new TextDecoder().decode(m)))}
+ catch(err){K=null;msg.textContent=(err&&err.message==="file")?"The page files could not be loaded.":"That password is not right."}go.disabled=false;go.textContent="Open"};
+</script></body></html>
